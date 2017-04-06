@@ -54,6 +54,15 @@ Commands
 - clean-cache: Empty cache files, which are saved between projects (eg, yarn)
 ```
 
+## run-django
+
+``` bash
+yo canonical-webteam:run-django
+```
+
+Install a version of the `run` script which will also use
+[docker-django](https://github.com/canonical-webteam/docker-django) to run a Django application on `./run start`.
+
 # License
 
 This codebase is licensed with [GNU Lesser General Public License version 3](LICENSE.md).
