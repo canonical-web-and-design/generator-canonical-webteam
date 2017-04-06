@@ -9,7 +9,7 @@
 # Update it to the latest version with:
 #
 # $ sudo npm install -g yo generator-canonical-webteam
-# $ yo canonical-webteam:run<% if (django) { %>-django<% } %>
+# $ yo canonical-webteam:run<% if (django) { %>-django<% if (db) { %>-db<% } } %>
 
 set -euo pipefail
 
@@ -76,7 +76,10 @@ fi
 # Settings
 module_volumes=()
 yarn_cache_volume="${CANONICAL_WEBTEAM_YARN_CACHE_VOLUME:-canonical-webteam-yarn-cache}"
-<% if (django) { %>pip_dependencies_volume="${project}-pip-dependencies"<% } %>
+<% if (django) { %>pip_dependencies_volume="${project}-pip-dependencies"
+<% if (db) { %>db_container="${project}-db"
+db_volume="${project}-db"
+network_name="${project}-net"<% } } %>
 
 # Defaults environment settings
 PORT=8000
@@ -180,7 +183,19 @@ django_run () {
         ${extra_options}                          `# Any extra docker options`  \
         ${django_image} ${command}                `# Run command in the Django image`
 }
-<% } %>
+<% if (db) { %>
+start_database () {
+    container_name="${1}"
+    kill_container "${project}-db"
+    docker run \
+        --name ${container_name}     `# Name the container`  \
+        --rm                      `# Remove the container once it's finished`  \
+        --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
+        --network "${network_name}"  `# Use an isolated network`  \
+        --network-alias db           `# Call this container "db" on the network so it can be found`  \
+        --detach                     `# Run in the background` \
+        postgres                     `# Use the image for node version 7`
+}<% } } %>
 
 # Find current run command
 run_command=${1:-}
@@ -218,8 +233,19 @@ case $run_command in
             yarn_run "${project}-watch" "run watch" "--detach"  # Run watch in the background
         fi
 
-        # Detach the serve container to run it in the background
-        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% if (django && db) { %>
+        # Create isolated network
+        if ! docker network inspect ${network_name} &> /dev/null; then
+            docker network create ${network_name}
+        fi
+
+        # Start the database
+        if [ -z "${detach}" ]; then trap "kill_container ${project}-db" EXIT; fi
+        start_database "${project}-db"
+        <% } %>
+
+        # Run the serve container, publishing the port, and detaching if required
+        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %>"
         <% } else { %>yarn_run "${project}-serve" "run serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
         <% } %>
     ;;

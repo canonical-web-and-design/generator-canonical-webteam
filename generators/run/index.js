@@ -48,7 +48,8 @@ module.exports = class extends Generator {
   writing() {
     // Defaults
     let options = {
-      'django': false
+      'django': false,
+      'db': false
     };
 
     // Overrides

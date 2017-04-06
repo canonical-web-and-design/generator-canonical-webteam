@@ -5,6 +5,7 @@ Available scripts:
 
 - run: Installs the basic ./run script for running yarn with docker
 - run-django: Install the ./run script for a Django project
+- run-django-db: Install the ./run script for a Django project with a database
 
 To run one, type:
 
