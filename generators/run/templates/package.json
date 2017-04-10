@@ -1,0 +1,21 @@
+{
+  "name": "ubuntu-website",
+  "version": "0.0.1",
+  "description": "Django website for ubuntu.com",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node-sass --include-path node_modules static/sass --output static/css ",
+    "watch": "node-sass --include-path node_modules --watch --source-map true --recursive static/sass/styles.scss static/css/styles.css"
+  },
+  "keywords": [
+    "website",
+    "ubuntu"
+  ],
+  "author": "Canonical webteam",
+  "license": "LGPL v3",
+  "devDependencies": {
+    "node-sass": "^4.10.0",
+    "ubuntu-vanilla-theme": "0.0.35"
+  }
+}
