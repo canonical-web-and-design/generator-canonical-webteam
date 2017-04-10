@@ -1,0 +1,12 @@
+# Added by canonical-webteam generator
+node_modules/
+*.css
+*.map
+*.log
+*.bak
+*.sqlite
+*.pyc
+*-cache/
+\#*\#
+*.*~
+.DS_store
