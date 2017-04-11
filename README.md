@@ -39,12 +39,12 @@ Usage
     [-m|--node-module PATH]  # A path to a local node module to use instead of the installed dependencies \
     [COMMAND]                # Optionally provide a command to run
 
-If no COMMAND is provided, `start` will be run.
+If no COMMAND is provided, `serve` will be run.
 
 Commands
 ---
 
-- start [-w|--watch] [-d|--detach]: Run `yarn run start` (optionally running `watch` in the background) \
+- serve [-p|--port PORT] [-w|--watch] [-d|--detach]: Run `yarn run serve` (optionally running `watch` in the background) \
 - watch: Run `yarn run watch`
 - build: Run `yarn run build`
 - test: Run `yarn run test`

@@ -16,7 +16,6 @@ set -euo pipefail
 # Define the versions of the two docker images
 yarn_image="canonicalwebteam/yarn:v0.2.0"
 
-# Usage instructions
 USAGE="Usage
 ===
 
@@ -24,12 +23,12 @@ USAGE="Usage
     [-m|--node-module PATH]  # A path to a local node module to use instead of the installed dependencies \\
     [COMMAND]                # Optionally provide a command to run
 
-If no COMMAND is provided, \`start\` will be run.
+If no COMMAND is provided, \`serve\` will be run.
 
 Commands
 ---
 
-- start [-w|--watch] [-d|--detach]: Run \`yarn run start\` (optionally running \`watch\` in the background) \\
+- serve [-p|--port PORT] [-w|--watch] [-d|--detach]: Run \`yarn run serve\` (optionally running \`watch\` in the background)
 - watch: Run \`yarn run watch\`
 - build: Run \`yarn run build\`
 - test: Run \`yarn run test\`
@@ -75,14 +74,17 @@ fi
 module_volumes=()
 yarn_cache_volume="${CANONICAL_WEBTEAM_YARN_CACHE_VOLUME:-canonical-webteam-yarn-cache}"
 
-# Setup environment variables
-# ===
+# Defaults environment settings
+PORT=8000
+
+# Import environment settings
 if [ -f .env ]; then
     export $(cat .env | grep -v ^\# | xargs)
 fi
 
 invalid() {
-    echo "Command not recognised."
+    message=${1}
+    echo "Error: ${message}"
     echo ""
     echo "$USAGE"
     exit 1
@@ -94,12 +96,12 @@ while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
 
     case $key in
         -m|--node-module)
-            if [ -z "${2:-}" ]; then invalid; fi
+            if [ -z "${2:-}" ]; then invalid "Missing module name. Usage: --node-module <path-to-module>."; fi
             module_volumes+=("--volume" "${2}":"`pwd`/node_modules/$(basename ${2})")
             shift
         ;;
         -h|--help) echo "$USAGE"; exit ;;
-        *) invalid ;;
+        *) invalid "Option '${key}' not recognised." ;;
     esac
     shift
 done
@@ -164,19 +166,24 @@ if [[ -n "${run_command}" ]]; then shift; fi
 
 # Do the real business
 case $run_command in
-    ""|"start")
+    ""|"serve")
         yarn_install
 
         # Read optional arguments
-        start_detached=false
+        detach=""
         run_watcher=false
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
             case $key in
-                -d|--detach) start_detached=true ;;
+                -d|--detach) detach="--detach" ;;
+                -p|--port)
+                    if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --port XXXX"; fi
+                    PORT=${2}
+                    shift
+                ;;
                 -w|--watch) run_watcher=true ;;
-                *) invalid ;;
+                *) invalid "Option '${key}' not recognised." ;;
             esac
             shift
         done
@@ -185,16 +192,12 @@ case $run_command in
 
         # Run watch command in the background
         if ${run_watcher}; then
-            if ! ${start_detached}; then trap "kill_container ${project}-watch" EXIT; fi
+            if ! ${serve_detached}; then trap "kill_container ${project}-watch" EXIT; fi
             yarn_run "${project}-watch" "run watch" "--detach"  # Run watch in the background
         fi
 
-        if ${start_detached}; then
-            # Detach the start container to run it in the background
-            yarn_run "${project}-start" "run start" "--detach"
-        else
-            yarn_run "${project}-start" "run start"
-        fi
+        # Run the serve container, publishing the port, and detaching if required
+        yarn_run "${project}-serve" "run serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
     ;;
     "stop")
         echo "Killing all running containers for ${project}"
@@ -215,8 +218,10 @@ case $run_command in
         yarn_run "${project}-yarn-test" "run test"
     ;;
     "clean")
-        echo "Running 'clean' yarn script"
-        yarn_run "${project}-clean" "run clean"  # Run the clean script
+        if package_has_script serve; then
+            echo "Running 'clean' yarn script"
+            yarn_run "${project}-clean" "run clean"  # Run the clean script
+        fi
 
         echo "Removing all containers, volumes and networks for project: ${project}"
         project_containers="$(docker ps --all --quiet --filter name=${project})"
@@ -237,5 +242,5 @@ case $run_command in
         docker volume rm --force ${yarn_cache_volume}
     ;;
     "yarn") yarn_run "${project}-yarn-$(date +'%s')" "${@}" ;;
-    *) invalid ;;
+    *) invalid "Command '${run_command}' not recognised." ;;
 esac
