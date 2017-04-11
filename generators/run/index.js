@@ -2,6 +2,7 @@
 
 // Core packages
 const fs = require('fs');
+const util = require('util');
 
 // Third-party packages
 const Generator = require('yeoman-generator');
@@ -122,6 +123,12 @@ module.exports = class extends Generator {
         const updatedScripts = util._extend(currentScripts, incomingScripts);
         packageContents['scripts'] = updatedScripts;
       }
+
+      // .sass-lint.yaml
+      this.fs.copyTpl(
+        this.templatePath('.sass-lint.yml'),
+        this.destinationPath('.sass-lint.yml')
+      );
 
       const updatedJson = JSON.stringify(packageContents, null, 2);
       fs.writeFileSync(
