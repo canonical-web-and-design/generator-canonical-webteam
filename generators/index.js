@@ -3,7 +3,7 @@ const Generator = require('yeoman-generator');
 const introduction = `
 Available scripts:
 
-[coming soon]
+- run: Installs the basic ./run script for running yarn with docker
 
 To run one, type:
 
