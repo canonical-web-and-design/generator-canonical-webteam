@@ -1,6 +1,6 @@
 {
   "name": "generator-canonical-webteam",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Generators for creating and maintaining Canonical webteam projects",
   "homepage": "https://design.canonical.com/team",
   "author": {
@@ -8,9 +8,6 @@
     "email": "webteam@canonical.com",
     "url": "https://design.canonical.com/team"
   },
-  "files": [
-    "generators"
-  ],
   "main": "generators/index.js",
   "keywords": [
     "yeoman-generator"
