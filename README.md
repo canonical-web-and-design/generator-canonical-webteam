@@ -63,6 +63,14 @@ yo canonical-webteam:run-django
 Install a version of the `run` script which will also use
 [docker-django](https://github.com/canonical-webteam/docker-django) to run a Django application on `./run start`.
 
+## run-django-db
+
+``` bash
+yo canonical-webteam:run-django-db
+```
+
+Install a version of the `run` script similar to the `run-django` one, but which will also run a [`postgres` container](https://hub.docker.com/_/postgres/)  and attach it to the Django container with the hostname `db`, for use by the application.
+
 # License
 
 This codebase is licensed with [GNU Lesser General Public License version 3](LICENSE.md).
