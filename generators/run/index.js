@@ -65,14 +65,14 @@ module.exports = class extends Generator {
     // .gitignore
     if (! fs.existsSync(this.destinationPath('.gitignore'))) {
       this.fs.copy(
-        this.templatePath('.gitignore'),
+        this.templatePath('gitignore'),
         this.destinationPath('.gitignore')
       );
     } else {
       if (this.answers.updateGitignore) {
         const currentContents = fs.readFileSync(this.destinationPath('.gitignore'), 'utf8');
         const currentLines = currentContents.split(/\r?\n/).filter(line => line != "").filter(line => ! line.match(/^#/)).map(line => line.trim());
-        const incomingContents = fs.readFileSync(this.templatePath('.gitignore'), 'utf8');
+        const incomingContents = fs.readFileSync(this.templatePath('gitignore'), 'utf8');
         const incomingLines = incomingContents.split(/\r?\n/).filter(line => line != "").map(line => line.trim());
         let newLines = [];
 
@@ -110,7 +110,6 @@ module.exports = class extends Generator {
 
       // Update devDependencies if requested
       if (this.answers.updateDevDependencies) {
-        console.log('here');
         const currentDevDependencies = packageContents['devDependencies'] || {};
         const incomingDevDependencies = incomingPackageContents['devDependencies'];
         const updatedDevDependencies = util._extend(currentDevDependencies, incomingDevDependencies);
@@ -127,7 +126,7 @@ module.exports = class extends Generator {
 
       // .sass-lint.yaml
       this.fs.copyTpl(
-        this.templatePath('.sass-lint.yml'),
+        this.templatePath('sass-lint.yml'),
         this.destinationPath('.sass-lint.yml')
       );
 
