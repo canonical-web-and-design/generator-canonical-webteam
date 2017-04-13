@@ -71,7 +71,7 @@ module.exports = class extends Generator {
     } else {
       if (this.answers.updateGitignore) {
         const currentContents = fs.readFileSync(this.destinationPath('.gitignore'), 'utf8');
-        const currentLines = currentContents.split(/\r?\n/).filter(line => line != "").filter(line => ! line.match(/^#/)).map(line => line.trim());
+        const currentLines = currentContents.split(/\r?\n/).filter(line => line != "").map(line => line.trim());
         const incomingContents = fs.readFileSync(this.templatePath('gitignore'), 'utf8');
         const incomingLines = incomingContents.split(/\r?\n/).filter(line => line != "").map(line => line.trim());
         let newLines = [];
