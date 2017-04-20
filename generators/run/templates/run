@@ -16,7 +16,7 @@ set -euo pipefail
 # Define the versions of the two docker images
 <% if (django) { %>django_image="canonicalwebteam/django:v1.2.2"
 <% } else if (jekyll) { %>bundler_image="canonicalwebteam/bundler:v0.1.0"
-<% } %>yarn_image="canonicalwebteam/yarn:v0.2.0"
+<% } %>yarn_image="canonicalwebteam/yarn:v0.3.0"
 
 USAGE="Usage
 ===
