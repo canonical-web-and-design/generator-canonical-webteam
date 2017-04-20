@@ -15,6 +15,7 @@ set -euo pipefail
 
 # Define the versions of the two docker images
 <% if (django) { %>django_image="canonicalwebteam/django:v1.2.2"
+<% } else if (jekyll) { %>bundler_image="canonicalwebteam/bundler:v0.1.0"
 <% } %>yarn_image="canonicalwebteam/yarn:v0.2.0"
 
 USAGE="Usage
@@ -31,7 +32,7 @@ Commands
 ---
 
 - serve [-p|--port PORT] [-w|--watch] [-d|--detach]: Run <% if (django) { %>Run the development server<% } else { %>\`yarn run serve\`<% } %> (optionally running \`watch\` in the background)
-- watch: Run \`yarn run watch\`
+- watch<% if (jekyll) { %> [-s|--watch-site]<% } %>: Run \`yarn run watch\`<% if (jekyll) { %> (optionally watching for jekyll changes in the background)<% } %>
 - build: Run \`yarn run build\`
 - test: Run \`yarn run test\`
 - stop: Stop any running containers
@@ -76,6 +77,8 @@ fi
 # Settings
 module_volumes=()
 yarn_cache_volume="${CANONICAL_WEBTEAM_YARN_CACHE_VOLUME:-canonical-webteam-yarn-cache}"
+[ -t 1 ] && tty="--tty --interactive" || tty=""           # Do we have a terminal?
+[ -f .env ] && env_file="--env-file .env" || env_file=""  # Do we have an env file?
 <% if (django) { %>pip_dependencies_volume="${project}-pip-dependencies"
 <% if (db) { %>db_container="${project}-db"
 db_volume="${project}-db"
@@ -120,7 +123,7 @@ kill_container () {
     container_name="${1}"
 
     # Kill any previous containers
-    previous_id=$(docker ps --all --quiet --filter "name=${container_name}")
+    previous_id=$(docker ps --all --quiet --filter "name=^/${container_name}$")
     if [ -n "${previous_id}" ]; then
         docker rm --force ${previous_id} > /dev/null;
     fi
@@ -131,8 +134,6 @@ run_as_user () {
 
     # Get options
     container_name=${1}; shift  # Get container_name as first argument
-    [ -t 1 ] && tty="--tty --interactive" || tty=""           # Do we have a terminal?
-    [ -f .env ] && env_file="--env-file .env" || env_file=""  # Do we have an env file?
 
     # Kill existing containers
     kill_container "${container_name}"
@@ -148,6 +149,28 @@ run_as_user () {
         ${tty}                    `# Attach a pseudo-terminal, if relevant`  \
         $@                        `# Extra arguments`
 }
+
+<% if (jekyll) { %>
+bundler_run () {
+    container_name="${1}"
+    command="${2:-}"
+    extra_options="${3:-}"
+
+    # Kill existing containers
+    kill_container "${container_name}"
+
+    docker run \
+        --name ${container_name}             `# Name the container` \
+        --rm                                 `# Remove the container once it's finished`  \
+        ${env_file}                          `# Pass environment variables into the container, if file exists`  \
+        --tty --interactive                  `# Attach an interactive terminal`  \
+        --user $(id -u):$(id -g)             `# Run everything as the current user`  \
+        --volume `pwd`:`pwd` --workdir `pwd` `# Run in the current working directory`  \
+        --volume ${project}-bundle:/bundler  `# Persist ruby dependencies in a docker volume`  \
+        ${extra_options}                     `# Extra options`  \
+        ${bundler_image} ${command}          `# Run the jeklyll command`
+}
+<% } %>
 
 yarn_run () {
     # Standard options for running yarn
@@ -246,6 +269,7 @@ case $run_command in
 
         # Run the serve container, publishing the port, and detaching if required
         <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %>"
+        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
         <% } else { %>yarn_run "${project}-serve" "run serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
         <% } %>
     ;;
@@ -255,6 +279,23 @@ case $run_command in
         docker kill ${running_containers}
     ;;
     "watch")
+        <% if (jekyll) { %>
+        # Read optional arguments
+        watch_site=false
+        while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
+            key="$1"
+
+            case $key in
+                -s|--watch-site) watch_site=true ;;
+                *) invalid "Option '${key}' not recognised." ;;
+            esac
+            shift
+        done
+        if ${watch_site}; then
+            trap "kill_container ${project}-watch-site" EXIT
+            bundler_run "${project}-watch-site" "jekyll build --watch" "--detach"  # Run site watcher in the background
+        fi
+        <% } %>
         yarn_install
         yarn_run "${project}-build" "run build"
         yarn_run "${project}-watch" "run watch"
@@ -262,6 +303,7 @@ case $run_command in
     "build")
         yarn_install
         yarn_run "${project}-build" "run build"
+        bundler_run "${project}-build-site" "jekyll build"
     ;;
     "test")
         yarn_install
