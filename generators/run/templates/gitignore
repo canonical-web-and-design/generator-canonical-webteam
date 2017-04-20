@@ -1,5 +1,6 @@
 # Added by canonical-webteam generator
 node_modules/
+.bundle/
 *.css
 *.map
 *.log
