@@ -303,7 +303,7 @@ case $run_command in
     "build")
         yarn_install
         yarn_run "${project}-build" "run build"
-        bundler_run "${project}-build-site" "jekyll build"
+        <% if (jekyll) { %>bundler_run "${project}-build-site" "jekyll build"<% } %>
     ;;
     "test")
         yarn_install
