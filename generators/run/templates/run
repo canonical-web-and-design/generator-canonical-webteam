@@ -252,7 +252,7 @@ case $run_command in
 
         # Run watch command in the background
         if ${run_watcher}; then
-            if ! ${serve_detached}; then trap "kill_container ${project}-watch" EXIT; fi
+            if [ -z "${detach}" ];  then trap "kill_container ${project}-watch" EXIT; fi
             yarn_run "${project}-watch" "run watch" "--detach"  # Run watch in the background
         fi
 
