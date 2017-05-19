@@ -1,2 +1,2 @@
-v2.0.0 (2017-05-19): Use the new "node" images instead of "yarn"
-v2.0.1 (2017-05-19): Defaults: Watch all sass files, and stay on latest sass libraries
+v0.2.0 (2017-05-19): Use the new "node" images instead of "yarn"
+v0.2.1 (2017-05-19): Defaults: Watch all sass files, and stay on latest sass libraries
