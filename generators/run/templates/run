@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Define the versions of the two docker images
-<% if (django) { %>django_image="canonicalwebteam/django:v2.0.0"
+<% if (django) { %>django_image="canonicalwebteam/django:v2.1.0"
 <% } else if (jekyll) { %>bundler_image="canonicalwebteam/bundler:v0.1.2"
 <% } %>node_image="canonicalwebteam/node:v0.1.0"
 
@@ -206,7 +206,7 @@ django_run () {
 
     # Run Django using the docker image
     run_as_user ${container_name} \
-        --volume ${pip_dependencies_volume}:/usr/local/lib/python2.7/site-packages  `# Store dependencies in a docker volume`  \
+        --volume ${pip_dependencies_volume}:/usr/local/lib/python3.6/site-packages  `# Store dependencies in a docker volume`  \
         --env PORT=${PORT}                        `# Set the port correctly`  \
         --env DJANGO_DEBUG=${DJANGO_DEBUG}        `# Set django debug mode`  \
         ${extra_options}                          `# Any extra docker options`  \
