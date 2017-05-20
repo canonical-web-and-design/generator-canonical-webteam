@@ -2,3 +2,4 @@ v0.2.0 (2017-05-19): Use the new "node" images instead of "yarn"
 v0.2.1 (2017-05-19): Defaults: Watch all sass files, and stay on latest sass libraries
 v0.2.2 (2017-05-19): Defaults: Remove static/css on clean
 v0.2.3 (2017-05-20): Use latest Django image
+v0.2.3 (2017-05-20): Defaults: Clean up more files
