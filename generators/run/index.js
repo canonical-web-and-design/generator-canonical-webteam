@@ -72,26 +72,51 @@ module.exports = class extends Generator {
     } else {
       if (this.answers.updateGitignore) {
         const currentContents = fs.readFileSync(this.destinationPath('.gitignore'), 'utf8');
-        const currentLines = currentContents.split(/\r?\n/).filter(line => line != "").map(line => line.trim());
+        const currentBlocks = currentContents.split(/\r?\n\r?\n/);
         const incomingContents = fs.readFileSync(this.templatePath('gitignore'), 'utf8');
-        const incomingLines = incomingContents.split(/\r?\n/).filter(line => line != "").map(line => line.trim());
-        let newLines = [];
+        const incomingBlocks = incomingContents.split(/\r?\n\r?\n/);
 
-        incomingLines.forEach(function(line) {
-          if (currentLines.indexOf(line) == -1) {
-            newLines.push(line);
+        let addedBlocks = [];
+        let newBlocks = [];
+
+        incomingBlocks.forEach(
+          function(block) {
+            const match = block.trim().match(/^# \[([^\]]+)\] (.*)\n([\s\S]*)/);
+
+            if (match) {
+              const id = match[1]
+              const title = match[2]
+              const ignores = match[3]
+
+              newBlocks.push("# [" + id + "] " + title + "\n" + ignores.trim())
+
+              addedBlocks.push(id)
+            }
           }
-        });
+        );
 
-        if (newLines.length > 0) {
-          const updatedContents = currentContents + '\n' + newLines.join('\n');
+        currentBlocks.forEach(
+          function(block) {
+            const match = block.trim().match(/^# \[([^\]]+)\] (.*)\n([\s\S]*)/);
 
-          fs.writeFileSync(
-            this.destinationPath('.gitignore'),
-            updatedContents,
-            'utf8'
-          );
-        }
+            if (match) {
+              const id = match[1]
+
+              // Keep blocks that haven't already been added
+              if (addedBlocks.indexOf(id) == -1) {
+                newBlocks.push(block.trim())
+              }
+            } else {
+              newBlocks.push(block.trim())
+            }
+          }
+        )
+
+        fs.writeFileSync(
+          this.destinationPath('.gitignore'),
+          newBlocks.join("\n\n"),
+          'utf8'
+        );
       }
     }
 
