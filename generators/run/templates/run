@@ -274,9 +274,9 @@ case $run_command in
         <% } %>
 
         # Run the serve container, publishing the port, and detaching if required
-        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %>"
-        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
-        <% } else { %>node_run "${project}-serve" "yarn run serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %> ${*}"
+        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${*}"
+        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
         <% } %>
     ;;
     "stop")
@@ -338,7 +338,7 @@ case $run_command in
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
         docker volume rm --force ${node_cache_volume}
     ;;
-<% if (django) { %>    "django") django_run "${project}-django-$(date +'%s')" "${@}" "--rm" ;;
-<% } %>    "node") node_run "${project}-node-$(date +'%s')" "${@}" ;;
+<% if (django) { %>    "django") django_run "${project}-django-$(date +'%s')" "${*}" "--rm" ;;
+<% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
