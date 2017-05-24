@@ -338,7 +338,7 @@ case $run_command in
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
         docker volume rm --force ${node_cache_volume}
     ;;
-<% if (django) { %>    "django") django_run "${project}-django-$(date +'%s')" "'${*}'" "--rm" ;;
-<% } %>    "node") node_run "${project}-node-$(date +'%s')" "'${*}'" ;;
+<% if (django) { %>    "django") django_run "${project}-django-$(date +'%s')" "${*}" "--rm" ;;
+<% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
