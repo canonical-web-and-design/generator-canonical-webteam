@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Define the versions of the two docker images
-<% if (django) { %>django_image="canonicalwebteam/django:v2.1.2"
+<% if (django) { %>django_image="canonicalwebteam/django:v2.2.0"
 <% } else if (jekyll) { %>bundler_image="canonicalwebteam/bundler:v0.1.2"
 <% } %>node_image="canonicalwebteam/node:v0.1.0"
 
@@ -161,13 +161,7 @@ bundler_run () {
     # Kill existing containers
     kill_container "${container_name}"
 
-    docker run \
-        --name ${container_name}             `# Name the container` \
-        --rm                                 `# Remove the container once it's finished`  \
-        ${env_file}                          `# Pass environment variables into the container, if file exists`  \
-        --tty --interactive                  `# Attach an interactive terminal`  \
-        --user $(id -u):$(id -g)             `# Run everything as the current user`  \
-        --volume `pwd`:`pwd` --workdir `pwd` `# Run in the current working directory`  \
+    run_as_user "${container_name}" \
         --volume ${project}-bundle:/bundler  `# Persist ruby dependencies in a docker volume`  \
         ${extra_options}                     `# Extra options`  \
         ${bundler_image} ${command}          `# Run the jeklyll command`
@@ -218,15 +212,16 @@ django_run () {
 <% if (db) { %>
 start_database () {
     container_name="${1}"
-    kill_container "${project}-db"
-    docker run \
-        --name ${container_name}     `# Name the container`  \
-        --rm                      `# Remove the container once it's finished`  \
-        --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
-        --network "${network_name}"  `# Use an isolated network`  \
-        --network-alias db           `# Call this container "db" on the network so it can be found`  \
-        --detach                     `# Run in the background` \
-        postgres                     `# Use the image for node version 7`
+    if ! docker inspect -f {{.State.Running}} ${container_name} &>/dev/null; then
+        docker run \
+            --name ${container_name}     `# Name the container`  \
+            --rm                         `# Remove the container once it's finished`  \
+            --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
+            --network "${network_name}"  `# Use an isolated network`  \
+            --network-alias db           `# Call this container "db" on the network so it can be found`  \
+            --detach                     `# Run in the background` \
+            postgres                     `# Use the image for node version 7`
+    fi
 }<% } } %>
 
 # Find current run command
@@ -317,7 +312,15 @@ case $run_command in
     "test")
         node_install
         node_run "${project}-yarn-test" "yarn run test"
-        <% if (django) { %>django_run "${project}-django-test" "test"<% } %>
+        <% if (django) { %>django_run "${project}-django-test" "python3 manage.py test"
+        kill_container "${project}-django-flake8"
+        docker run \
+            ${tty} \
+            --volume `pwd`:`pwd` \
+            --workdir `pwd` \
+            --name "${project}-django-flake8" \
+            --entrypoint flake8 \
+            ${django_image} --exclude '*env*'<% } %>
     ;;
     "clean")
         echo "Running 'clean' yarn script"
@@ -347,7 +350,9 @@ case $run_command in
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
         docker volume rm --force ${pip_cache_volume}
     ;;
-<% if (django) { %>    "django") django_run "${project}-django-$(date +'%s')" "${*}" "--rm" ;;
+<% if (django) { %>    "django")
+        start_database "${project}-db"
+        django_run "${project}-django-$(date +'%s')" "${*}" "--network ${network_name}" ;;
 <% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
