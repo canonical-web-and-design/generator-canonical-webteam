@@ -84,7 +84,7 @@ pip_cache_volume="${CANONICAL_WEBTEAM_PIP_CACHE_VOLUME:-canonical-webteam-pip-ca
 <% if (db) { %>db_container="${project}-db"
 db_volume="${project}-db"
 network_name="${project}-net"<% } } %>
-run_serve_docker_opts="${RUN_SERVE_DOCKER_OPTS:-}"
+run_serve_docker_opts="${CANONICAL_WEBTEAM_RUN_SERVE_DOCKER_OPTS:-}"
 
 # Defaults environment settings
 PORT=8000
