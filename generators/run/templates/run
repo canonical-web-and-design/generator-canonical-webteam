@@ -84,6 +84,7 @@ pip_cache_volume="${CANONICAL_WEBTEAM_PIP_CACHE_VOLUME:-canonical-webteam-pip-ca
 <% if (db) { %>db_container="${project}-db"
 db_volume="${project}-db"
 network_name="${project}-net"<% } } %>
+run_serve_docker_opts="${CANONICAL_WEBTEAM_RUN_SERVE_DOCKER_OPTS:-}"
 
 # Defaults environment settings
 PORT=8000
@@ -276,9 +277,9 @@ case $run_command in
         <% } %>
 
         # Run the serve container, publishing the port, and detaching if required
-        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %> ${*}"
-        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${*}"
-        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %> ${run_serve_docker_opts} ${*}"
+        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts} ${*}"
+        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}"
         <% } %>
     ;;
     "stop")
