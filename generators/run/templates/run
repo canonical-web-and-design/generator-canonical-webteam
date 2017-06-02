@@ -348,7 +348,21 @@ case $run_command in
         docker volume rm --force ${pip_cache_volume}
     ;;
 <% if (django) { %>    "django")
-        django_run "${project}-django-$(date +'%s')" "${*}" ;;
+        expose_port=""
+        while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
+            key="$1"
+
+            case $key in
+                -p|--expose-port)
+                    if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
+                    expose_port="--publish ${2}:${2}"
+                    shift
+                ;;
+                *) invalid "Option '${key}' not recognised." ;;
+            esac
+            shift
+        done
+        django_run "${project}-django-$(date +'%s')" "${*}" "${expose_port}" ;;
 <% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
