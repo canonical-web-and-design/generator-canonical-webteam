@@ -200,21 +200,18 @@ django_run () {
     command="${2:-}"
     extra_options="${3:-}"
 
-    # Run Django using the docker image
-    run_as_user ${container_name} \
-        --volume ${django_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
-        --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
-        --env PORT=${PORT}                                     `# Set the port correctly`  \
-        --env DJANGO_DEBUG=${DJANGO_DEBUG}                     `# Set django debug mode`  \
-        ${extra_options}                                       `# Any extra docker options`  \
-        ${django_image} ${command}                             `# Run command in the Django image`
-}
-<% if (db) { %>
-start_database () {
-    container_name="${1}"
-    if ! docker inspect -f {{.State.Running}} ${container_name} &>/dev/null; then
+    <% if (django && db) { %>
+    # Create isolated network
+    if ! docker network inspect ${network_name} &> /dev/null; then
+        docker network create ${network_name}
+    fi
+    extra_options="${extra_options} --network ${network_name}"
+
+    # Start the database
+    if [[ "${extra_options}" != *"--detach"* ]]; then trap "kill_container ${project}-db" EXIT; fi
+    if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
         docker run \
-            --name ${container_name}     `# Name the container`  \
+            --name ${db_container}       `# Name the container`  \
             --rm                         `# Remove the container once it's finished`  \
             --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
             --network "${network_name}"  `# Use an isolated network`  \
@@ -222,7 +219,18 @@ start_database () {
             --detach                     `# Run in the background` \
             postgres                     `# Use the image for node version 7`
     fi
-}<% } } %>
+    <% } %>
+
+    # Run Django using the docker image
+    run_as_user ${container_name} \
+        --volume ${django_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
+        --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
+        --env PORT=${PORT}                                     `# Set the port correctly`  \
+        --env DJANGO_DEBUG=${DJANGO_DEBUG}                     `# Set django debug mode`  \
+        ${extra_options}                                       `# Any extra docker options`  \
+        ${django_image} "${command}"                           `# Run command in the Django image`
+}
+<% } %>
 
 # Find current run command
 run_command=${1:-}
@@ -260,21 +268,10 @@ case $run_command in
             node_run "${project}-watch" "yarn run watch" "--detach"  # Run watch in the background
         fi
 
-        <% if (django && db) { %>
-        # Create isolated network
-        if ! docker network inspect ${network_name} &> /dev/null; then
-            docker network create ${network_name}
-        fi
-
-        # Start the database
-        if [ -z "${detach}" ]; then trap "kill_container ${project}-db" EXIT; fi
-        start_database "${project}-db"
-        <% } %>
-
         # Run the serve container, publishing the port, and detaching if required
-        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}<% if (db) { %> --network ${network_name}<% } %> ${run_serve_docker_opts} ${*}"
-        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts} ${*}"
-        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}"
+        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${*}"
+        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
         <% } %>
     ;;
     "stop")
@@ -351,8 +348,7 @@ case $run_command in
         docker volume rm --force ${pip_cache_volume}
     ;;
 <% if (django) { %>    "django")
-        start_database "${project}-db"
-        django_run "${project}-django-$(date +'%s')" "${*}" "--network ${network_name}" ;;
+        django_run "${project}-django-$(date +'%s')" "${*}" ;;
 <% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
