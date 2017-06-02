@@ -154,9 +154,8 @@ run_as_user () {
 
 <% if (jekyll) { %>
 bundler_run () {
-    container_name="${1}"
-    command="${2:-}"
-    extra_options="${3:-}"
+    container_name="${1}"; shift
+    extra_options="${1:-}"; shift
 
     # Kill existing containers
     kill_container "${container_name}"
@@ -164,22 +163,21 @@ bundler_run () {
     run_as_user "${container_name}" \
         --volume ${project}-bundle:/bundler  `# Persist ruby dependencies in a docker volume`  \
         ${extra_options}                     `# Extra options`  \
-        ${bundler_image} ${command}          `# Run the jeklyll command`
+        ${bundler_image} $@                  `# Run the jeklyll command`
 }
 <% } %>
 
 node_run () {
     # Standard options for running node commands
-    container_name="${1}"
-    command="${2:-}"
-    extra_options="${3:-}"
+    container_name="${1}"; shift
+    extra_options="${1:-}"; shift
 
     # Run a command in the "node" image
     run_as_user "${container_name}"  \
         --volume ${yarn_cache_volume}:/home/shared/.cache/yarn/  `# Bind cache to volume` \
         ${module_volumes[@]+"${module_volumes[@]}"}              `# Add any override modules as volumes`  \
         ${extra_options}                                         `# Extra options`  \
-        ${node_image} ${command}                                 `# Run command in node image`
+        ${node_image} ${@}                                       `# Run command in node image`
 }
 
 node_install () {
@@ -196,9 +194,8 @@ node_install () {
 
 <% if (django) { %>
 django_run () {
-    container_name="${1}"
-    command="${2:-}"
-    extra_options="${3:-}"
+    container_name="${1}"; shift
+    extra_options="${1:-}"; shift
 
     <% if (django && db) { %>
     # Create isolated network
@@ -228,7 +225,7 @@ django_run () {
         --env PORT=${PORT}                                     `# Set the port correctly`  \
         --env DJANGO_DEBUG=${DJANGO_DEBUG}                     `# Set django debug mode`  \
         ${extra_options}                                       `# Any extra docker options`  \
-        ${django_image} "${command}"                           `# Run command in the Django image`
+        ${django_image} $@                                     `# Run command in the Django image`
 }
 <% } %>
 
@@ -260,18 +257,18 @@ case $run_command in
             shift
         done
 
-        node_run "${project}-build" "yarn run build"
+        node_run "${project}-build" "" yarn run build
 
         # Run watch command in the background
         if ${run_watcher}; then
             if [ -z "${detach}" ];  then trap "kill_container ${project}-watch" EXIT; fi
-            node_run "${project}-watch" "yarn run watch" "--detach"  # Run watch in the background
+            node_run "${project}-watch" "--detach" yarn run watch  # Run watch in the background
         fi
 
         # Run the serve container, publishing the port, and detaching if required
-        <% if (django) { %>django_run "${project}-serve" "" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
-        <% } else if (jekyll) { %>bundler_run "${project}-serve" "jekyll serve -P ${PORT} -H 0.0.0.0" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${*}"
-        <% } else { %>node_run "${project}-serve" "yarn run serve ${*}" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% if (django) { %>django_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}"
+        <% } else if (jekyll) { %>bundler_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}" jekyll serve -P ${PORT} -H 0.0.0.0
+        <% } else { %>node_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach}" yarn run serve
         <% } %>
     ;;
     "stop")
@@ -294,22 +291,22 @@ case $run_command in
         done
         if ${watch_site}; then
             trap "kill_container ${project}-watch-site" EXIT
-            bundler_run "${project}-watch-site" "jekyll build --watch" "--detach"  # Run site watcher in the background
+            bundler_run "${project}-watch-site" "--detach" jekyll build --watch  # Run site watcher in the background
         fi
         <% } %>
         node_install
-        node_run "${project}-build" "yarn run build"
-        node_run "${project}-watch" "yarn run watch"
+        node_run "${project}-build" "" yarn run build
+        node_run "${project}-watch" "" yarn run watch
     ;;
     "build")
         node_install
-        node_run "${project}-build" "yarn run build"
-        <% if (jekyll) { %>bundler_run "${project}-build-site" "jekyll build"<% } %>
+        node_run "${project}-build" "" yarn run build
+        <% if (jekyll) { %>bundler_run "${project}-build-site" "" jekyll build<% } %>
     ;;
     "test")
         node_install
         node_run "${project}-yarn-test" "yarn run test"
-        <% if (django) { %>django_run "${project}-django-test" "python3 manage.py test"
+        <% if (django) { %>django_run "${project}-django-test" "" python3 manage.py test
         kill_container "${project}-django-flake8"
         docker run \
             ${tty} \
@@ -321,7 +318,7 @@ case $run_command in
     ;;
     "clean")
         echo "Running 'clean' yarn script"
-        node_run "${project}-clean" "yarn run clean" || true  # Run the clean script
+        node_run "${project}-clean" "" yarn run clean || true  # Run the clean script
 
         echo "Removing all containers, volumes and networks for project: ${project}"
         project_containers="$(docker ps --all --quiet --filter name=${project})"
@@ -362,7 +359,7 @@ case $run_command in
             esac
             shift
         done
-        django_run "${project}-django-$(date +'%s')" "${*}" "${expose_port}" ;;
-<% } %>    "node") node_run "${project}-node-$(date +'%s')" "${*}" ;;
+        django_run "${project}-django-$(date +'%s')" "${expose_port}" $@ ;;
+<% } %>    "node") node_run "${project}-node-$(date +'%s')" "" $@ ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
