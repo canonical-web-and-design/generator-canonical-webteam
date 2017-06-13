@@ -183,7 +183,7 @@ node_run () {
 node_install () {
     # Install bower dependencies, if we need to
     if [ -f "bower.json" ]; then
-        node_run "${project}-bower-install" "bower install"
+        node_run "${project}-bower-install" "" bower install
     fi
 
     # Install yarn dependencies, without module overrides
@@ -305,7 +305,7 @@ case $run_command in
     ;;
     "test")
         node_install
-        node_run "${project}-yarn-test" "yarn run test"
+        node_run "${project}-yarn-test" "" yarn run test
         <% if (django) { %>django_run "${project}-django-test" "" python3 manage.py test
         kill_container "${project}-django-flake8"
         docker run \
