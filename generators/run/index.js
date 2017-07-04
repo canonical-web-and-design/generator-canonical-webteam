@@ -3,6 +3,7 @@
 // Core packages
 const fs = require('fs');
 const util = require('util');
+const pjson = require('../../package.json');
 
 // Third-party packages
 const Generator = require('yeoman-generator');
@@ -50,8 +51,11 @@ module.exports = class extends Generator {
     let options = {
       'django': false,
       'db': false,
-      'jekyll': false
+      'jekyll': false,
+      'version': pjson.version
     };
+
+
 
     // Overrides
     Object.assign(options, this.options);
