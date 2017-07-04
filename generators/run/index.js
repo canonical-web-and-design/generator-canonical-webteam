@@ -55,8 +55,6 @@ module.exports = class extends Generator {
       'version': pjson.version
     };
 
-
-
     // Overrides
     Object.assign(options, this.options);
 
