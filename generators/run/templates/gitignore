@@ -25,6 +25,7 @@ pids
 
 # [deps] Local dependencies
 .bundle/
+.package-lock.json  # Normally lockfiles would be committed, but we use yarn instead of NPM for locking dependencies
 node_modules/
 bower_components/
 vendor/

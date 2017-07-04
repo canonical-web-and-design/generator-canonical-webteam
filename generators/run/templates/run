@@ -341,11 +341,13 @@ case $run_command in
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
         docker volume rm --force ${yarn_cache_volume}
 
-        # Clean node cache volume
+        <% if (django) { %>
+        # Clean pip cache volume
         echo "Removing cache volume ${pip_cache_volume}"
         containers_using_volume=$(docker ps --quiet --all --filter "volume=${pip_cache_volume}")
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
-        <% if (django) { %> docker volume rm --force ${pip_cache_volume} <% } %>
+        docker volume rm --force ${pip_cache_volume}
+        <% } %>
     ;;
 <% if (django) { %>    "django")
         expose_port=""
