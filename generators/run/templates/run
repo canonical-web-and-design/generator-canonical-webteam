@@ -9,40 +9,60 @@
 # Update it to the latest version with:
 #
 # $ sudo npm install -g yo generator-canonical-webteam
-# $ yo canonical-webteam:run<% if (django) { %>-django<% if (db) { %>-db<% } } %>
+# $ yo canonical-webteam:run
 
 set -euo pipefail
 
-# Define the versions of the two docker images
-<% if (django) { %>django_image="canonicalwebteam/django:v2.2.1"
-<% } else if (jekyll) { %>bundler_image="canonicalwebteam/bundler:v0.1.2"
-<% } %>node_image="canonicalwebteam/node:v0.1.0"
-
-VERSION="<%= version %>"
-
-USAGE="Usage
+USAGE="How to use ./run v<%= version %>
 ===
 
   $ ./run \\
     [-m|--node-module PATH]  # A path to a local node module to use instead of the installed dependencies \\
-<% if (django) { %>    [--no-debug]             # Turn off Django's DEBUG setting \\
-<% } %>    [COMMAND]                # Optionally provide a command to run
+    [--no-debug]             # Turn off the DEBUG setting \\
+    [COMMAND]                # Optionally provide a command to run
 
 If no COMMAND is provided, \`serve\` will be run.
 
 Commands
 ---
 
-- serve [-p|--port PORT] [-w|--watch] [-d|--detach]: Run <% if (django) { %>Run the development server<% } else { %>\`yarn run serve\`<% } %> (optionally running \`watch\` in the background)
-- watch<% if (jekyll) { %> [-s|--watch-site]<% } %>: Run \`yarn run watch\`<% if (jekyll) { %> (optionally watching for jekyll changes in the background)<% } %>
+- serve [-p|--port PORT] [-w|--watch] [-d|--detach]: Run a development server (optionally running \`watch\` in the background)
+- watch [-s|--watch-site]: Run \`yarn run watch\` (for jekyll sites, watch for changes with \`--watch-site\`)
 - build: Run \`yarn run build\`
 - test: Run \`yarn run test\`
 - stop: Stop any running containers
-- node <args>: Run a command in the node container
-<% if (django) { %>- django <args>: Run ./manage.py <args>
-<% } %>- clean: Remove all images and containers, any installed dependencies and the .docker-project file
+- node [-p|--expose-port PORT] <args>: Run a command in the node container (optionally exposing a port to the host)
+- django [-p|--expose-port PORT] <args>: Run a command in a django container (optionally exposing a port to the host)
+- bundler [-p|--expose-port PORT] <args>: Run a command in a bundler container (optionally exposing a port to the host)
+- clean: Remove all images and containers, any installed dependencies and the .docker-project file
 - clean-cache: Empty cache files, which are saved between projects (eg, yarn)
 "
+
+##
+# Variable definitions
+##
+
+# Define docker images versions
+django_image="canonicalwebteam/django:v2.1.2"
+bundler_image="canonicalwebteam/bundler:v0.1.2"
+node_image="canonicalwebteam/node:v0.1.0"
+
+# Global volume names
+yarn_cache_volume="${CANONICAL_WEBTEAM_YARN_CACHE_VOLUME:-canonical-webteam-node-cache}"
+pip_cache_volume="${CANONICAL_WEBTEAM_PIP_CACHE_VOLUME:-canonical-webteam-pip-cache}"
+
+# Interactivity options
+[ -t 1 ] && tty="--tty --interactive" || tty=""           # Do we have a terminal?
+[ -f .env ] && env_file="--env-file .env" || env_file=""  # Do we have an env file?
+
+# Defaults environment settings
+PORT=8000
+RUN_DEBUG=true
+
+# Other variables
+run_serve_docker_opts="${CANONICAL_WEBTEAM_RUN_SERVE_DOCKER_OPTS:-}"
+module_volumes=()
+
 
 ##
 # Check docker is installed correctly
@@ -76,21 +96,12 @@ else
     echo $project > .docker-project
 fi
 
-# Settings
-module_volumes=()
-yarn_cache_volume="${CANONICAL_WEBTEAM_YARN_CACHE_VOLUME:-canonical-webteam-node-cache}"
-[ -t 1 ] && tty="--tty --interactive" || tty=""           # Do we have a terminal?
-[ -f .env ] && env_file="--env-file .env" || env_file=""  # Do we have an env file?
-<% if (django) { %>django_lib_volume="${project}-django-lib"
-pip_cache_volume="${CANONICAL_WEBTEAM_PIP_CACHE_VOLUME:-canonical-webteam-pip-cache}"
-<% if (db) { %>db_container="${project}-db"
+# Set project specific container names
+django_lib_volume="${project}-django-lib"
+db_container="${project}-db"
 db_volume="${project}-db"
-network_name="${project}-net"<% } } %>
-run_serve_docker_opts="${CANONICAL_WEBTEAM_RUN_SERVE_DOCKER_OPTS:-}"
+network_name="${project}-net"
 
-# Defaults environment settings
-PORT=8000
-<% if (django) { %>DJANGO_DEBUG=true<% } %>
 # Import environment settings
 if [ -f .env ]; then
     export $(cat .env | grep -v ^\# | xargs)
@@ -109,16 +120,14 @@ while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
     key="$1"
 
     case $key in
-<% if (django) { %>
-        --no-debug) DJANGO_DEBUG=false ;;
-<% } %>
+        --no-debug) RUN_DEBUG=false ;;
         -m|--node-module)
             if [ -z "${2:-}" ]; then invalid "Missing module name. Usage: --node-module <path-to-module>."; fi
             module_volumes+=("--volume" "${2}":"`pwd`/node_modules/$(basename ${2})")
             shift
         ;;
         -h|--help) echo "$USAGE"; exit ;;
-        -v|--version) echo "Generated from generator-canonical-webteam@$VERSION"; exit ;;
+        -v|--version) echo "Generated from generator-canonical-webteam@<%= version %>"; exit ;;
         *) invalid "Option '${key}' not recognised." ;;
     esac
     shift
@@ -155,7 +164,6 @@ run_as_user () {
         $@                        `# Extra arguments`
 }
 
-<% if (jekyll) { %>
 bundler_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
@@ -168,7 +176,6 @@ bundler_run () {
         ${extra_options}                     `# Extra options`  \
         ${bundler_image} $@                  `# Run the jeklyll command`
 }
-<% } %>
 
 node_run () {
     # Standard options for running node commands
@@ -195,42 +202,44 @@ node_install () {
         ${node_image} yarn install  `# Install yarn dependencies`
 }
 
-<% if (django) { %>
 django_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
-    <% if (django && db) { %>
-    # Create isolated network
-    if ! docker network inspect ${network_name} &> /dev/null; then
-        docker network create ${network_name}
-    fi
-    extra_options="${extra_options} --network ${network_name}"
+    if grep -q DATABASES */settings.py; then
+        # Create isolated network
+        if ! docker network inspect ${network_name} &> /dev/null; then
+            docker network create ${network_name}
+        fi
+        extra_options="${extra_options} --network ${network_name}"
 
-    # Start the database
-    if [[ "${extra_options}" != *"--detach"* ]]; then trap "kill_container ${project}-db" EXIT; fi
-    if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
-        docker run \
-            --name ${db_container}       `# Name the container`  \
-            --rm                         `# Remove the container once it's finished`  \
-            --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
-            --network "${network_name}"  `# Use an isolated network`  \
-            --network-alias db           `# Call this container "db" on the network so it can be found`  \
-            --detach                     `# Run in the background` \
-            postgres                     `# Use the image for node version 7`
+        # Start the database
+        if [[ "${extra_options}" != *"--detach"* ]]; then trap "kill_container ${project}-db" EXIT; fi
+        if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
+            docker run \
+                --name ${db_container}       `# Name the container`  \
+                --rm                         `# Remove the container once it's finished`  \
+                --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
+                --network "${network_name}"  `# Use an isolated network`  \
+                --network-alias db           `# Call this container "db" on the network so it can be found`  \
+                --detach                     `# Run in the background` \
+                postgres                     `# Use the image for node version 7`
+        fi
     fi
-    <% } %>
+
+    # Choose debug variable
+    debug="DEBUG=${RUN_DEBUG}"
+    if [ -f manage.py ]; then debug="DJANGO_DEBUG=${RUN_DEBUG}"; fi
 
     # Run Django using the docker image
     run_as_user ${container_name} \
         --volume ${django_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
         --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
         --env PORT=${PORT}                                     `# Set the port correctly`  \
-        --env DJANGO_DEBUG=${DJANGO_DEBUG}                     `# Set django debug mode`  \
+        --env ${debug}                                         `# Set debug mode`  \
         ${extra_options}                                       `# Any extra docker options`  \
         ${django_image} $@                                     `# Run command in the Django image`
 }
-<% } %>
 
 # Find current run command
 run_command=${1:-}
@@ -268,11 +277,19 @@ case $run_command in
             node_run "${project}-watch" "--detach" yarn run watch  # Run watch in the background
         fi
 
+        # Select run function and run command
+        run_function="node_run"
+        run_command="yarn run serve"
+        if [ -f manage.py ]; then  # django
+            run_function="django_run"
+            run_command=""
+        elif [ -f _config.yml ]; then  # jekyll
+            run_function="bundler_run"
+            run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
+        fi
+
         # Run the serve container, publishing the port, and detaching if required
-        <% if (django) { %>django_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}" $*
-        <% } else if (jekyll) { %>bundler_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}" jekyll serve -P ${PORT} -H 0.0.0.0 $*
-        <% } else { %>node_run "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}" yarn run serve $*
-        <% } %>
+        ${run_function} "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}" ${run_command} $*
     ;;
     "stop")
         echo "Stopping all running containers for ${project}"
@@ -280,14 +297,20 @@ case $run_command in
         docker kill ${running_containers}
     ;;
     "watch")
-        <% if (jekyll) { %>
         # Read optional arguments
         watch_site=false
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
             case $key in
-                -s|--watch-site) watch_site=true ;;
+                -s|--watch-site)
+                    # Error if not a jekyll site
+                    if [ ! -f _config.yml ]; then
+                        echo "Error: Not a Jekyll site";
+                        exit 1;
+                    fi
+                    watch_site=true
+                ;;
                 *) invalid "Option '${key}' not recognised." ;;
             esac
             shift
@@ -296,7 +319,6 @@ case $run_command in
             trap "kill_container ${project}-watch-site" EXIT
             bundler_run "${project}-watch-site" "--detach" jekyll build --watch  # Run site watcher in the background
         fi
-        <% } %>
         node_install
         node_run "${project}-build" "" yarn run build
         node_run "${project}-watch" "" yarn run watch
@@ -304,20 +326,33 @@ case $run_command in
     "build")
         node_install
         node_run "${project}-build" "" yarn run build
-        <% if (jekyll) { %>bundler_run "${project}-build-site" "" jekyll build<% } %>
+        if [ -f _config.yml ]; then
+            # For jekyll sites
+            bundler_run "${project}-build-site" "" jekyll build
+        fi
     ;;
     "test")
         node_install
-        node_run "${project}-yarn-test" "" yarn run test
-        <% if (django) { %>django_run "${project}-django-test" "" python3 manage.py test
-        kill_container "${project}-django-flake8"
-        docker run \
-            ${tty} \
-            --volume `pwd`:`pwd` \
-            --workdir `pwd` \
-            --name "${project}-django-flake8" \
-            --entrypoint flake8 \
-            ${django_image} --exclude '*env*'<% } %>
+
+        # Select run function and command for test
+        test_function="node_run"
+        test_command="yarn run test"
+        if [ -f manage.py ]; then  # django
+            test_function="django_run"
+            test_command="test"
+        fi
+        ${test_function} "${project}-test" "" test_command
+
+        if [ -f manage.py ]; then
+            kill_container "${project}-flake8"
+            docker run \
+                ${tty} \
+                --volume `pwd`:`pwd` \
+                --workdir `pwd` \
+                --name "${project}-flake8" \
+                --entrypoint flake8 \
+                ${django_image} --exclude '*env*'
+        fi
     ;;
     "clean")
         echo "Running 'clean' yarn script"
@@ -341,15 +376,15 @@ case $run_command in
         if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
         docker volume rm --force ${yarn_cache_volume}
 
-        <% if (django) { %>
-        # Clean pip cache volume
-        echo "Removing cache volume ${pip_cache_volume}"
-        containers_using_volume=$(docker ps --quiet --all --filter "volume=${pip_cache_volume}")
-        if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
-        docker volume rm --force ${pip_cache_volume}
-        <% } %>
+        if [ -f manage.py ]; then
+            # Clean pip cache volume
+            echo "Removing cache volume ${pip_cache_volume}"
+            containers_using_volume=$(docker ps --quiet --all --filter "volume=${pip_cache_volume}")
+            if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
+            docker volume rm --force ${pip_cache_volume}
+        fi
     ;;
-<% if (django) { %>    "django")
+    "django")
         expose_port=""
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
@@ -364,7 +399,41 @@ case $run_command in
             esac
             shift
         done
-        django_run "${project}-django-$(date +'%s')" "${expose_port}" $@ ;;
-<% } %>    "node") node_run "${project}-node-$(date +'%s')" "" $@ ;;
+        django_run "${project}-django-$(date +'%s')" "${expose_port}" $@
+    ;;
+    "node")
+        expose_port=""
+        while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
+            key="$1"
+
+            case $key in
+                -p|--expose-port)
+                    if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
+                    expose_port="--publish ${2}:${2}"
+                    shift
+                ;;
+                *) invalid "Option '${key}' not recognised." ;;
+            esac
+            shift
+        done
+        node_run "${project}-node-$(date +'%s')" "${expose_port}" $@
+    ;;
+    "bundler")
+        expose_port=""
+        while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
+            key="$1"
+
+            case $key in
+                -p|--expose-port)
+                    if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
+                    expose_port="--publish ${2}:${2}"
+                    shift
+                ;;
+                *) invalid "Option '${key}' not recognised." ;;
+            esac
+            shift
+        done
+        bundler_run "${project}-bundler-$(date +'%s')" "${expose_port}" $@
+    ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
