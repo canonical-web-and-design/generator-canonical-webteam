@@ -49,9 +49,6 @@ module.exports = class extends Generator {
   writing() {
     // Defaults
     let options = {
-      'django': false,
-      'db': false,
-      'jekyll': false,
       'version': pjson.version
     };
 
