@@ -334,24 +334,48 @@ case $run_command in
     "test")
         node_install
 
-        # Select run function and command for test
-        test_function="node_run"
-        test_command="yarn run test"
-        if [ -f manage.py ]; then  # django
-            test_function="django_run"
-            test_command="test"
-        fi
-        ${test_function} "${project}-test" "" test_command
+        test_error=false
 
+        kill_container "${project}-node-test"
+        kill_container "${project}-django-test"
+        kill_container "${project}-flake8-test"
+
+        # Run node tests
+        if [ -f package.json ]; then
+            echo "==="
+            echo "Running yarn tests"
+            echo "==="
+            node_run "${project}-node-test" "" yarn run test || test_error=true
+        fi
+
+        # Run django tests
         if [ -f manage.py ]; then
-            kill_container "${project}-flake8"
+            echo "==="
+            echo "Running Django tests"
+            echo "==="
+            django_run "${project}-django-test" "" python3 manage.py test || test_error=true
+
+            echo "==="
+            echo "Running flake8 tests"
+            echo "==="
             docker run \
                 ${tty} \
                 --volume `pwd`:`pwd` \
                 --workdir `pwd` \
-                --name "${project}-flake8" \
+                --name "${project}-flake8-test" \
                 --entrypoint flake8 \
-                ${django_image} --exclude '*env*'
+                ${django_image} --exclude '*env*,node_modules' || test_error=true
+        fi
+
+        if ${test_error}; then
+            echo "==="
+            echo "Tests failed"
+            echo "==="
+            exit 1
+        else
+            echo "==="
+            echo "Tests succeeded"
+            echo "==="
         fi
     ;;
     "clean")
