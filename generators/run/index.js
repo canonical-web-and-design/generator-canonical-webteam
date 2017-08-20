@@ -3,6 +3,7 @@
 // Core packages
 const fs = require('fs');
 const util = require('util');
+const ejs = require('ejs');
 const pjson = require('../../package.json');
 
 // Third-party packages
@@ -67,16 +68,18 @@ module.exports = class extends Generator {
 
     // .gitignore
     if (! fs.existsSync(this.destinationPath('.gitignore'))) {
-      this.fs.copy(
+      this.fs.copyTpl(
         this.templatePath('gitignore'),
-        this.destinationPath('.gitignore')
+        this.destinationPath('.gitignore'),
+        options
       );
     } else {
       if (this.answers.updateGitignore) {
-        const currentContents = fs.readFileSync(this.destinationPath('.gitignore'), 'utf8');
+        const currentContents = this.fs.read(this.destinationPath('.gitignore'));
+        const incomingContents = this.fs.read(this.templatePath('gitignore'));
+        const contextualisedContents = ejs.render(incomingContents, options)
         const currentBlocks = currentContents.split(/\r?\n\r?\n/);
-        const incomingContents = fs.readFileSync(this.templatePath('gitignore'), 'utf8');
-        const incomingBlocks = incomingContents.split(/\r?\n\r?\n/);
+        const incomingBlocks = contextualisedContents.split(/\r?\n\r?\n/);
 
         let addedBlocks = [];
         let newBlocks = [];
@@ -125,16 +128,18 @@ module.exports = class extends Generator {
     // package,json
     if (! fs.existsSync(this.destinationPath('package.json'))) {
       // Copy default package.json
-      this.fs.copy(
+      this.fs.copyTpl(
         this.templatePath('package.json'),
-        this.destinationPath('package.json')
+        this.destinationPath('package.json'),
+        options
       );
     } else if (this.answers.updateDevDependencies || this.answers.updateScripts) {
       // We're updating package.json, so parse contents of both new and old package.json
-      const currentJson = fs.readFileSync(this.destinationPath('package.json'), 'utf8');
-      const incomingJson = fs.readFileSync(this.templatePath('package.json'), 'utf8');
+      const currentJson = this.fs.read(this.destinationPath('package.json'));
+      const incomingJson = this.fs.read(this.templatePath('package.json'));
+      const contextualisedJson = ejs.render(incomingJson, options)
       const packageContents = JSON.parse(currentJson);
-      const incomingPackageContents = JSON.parse(incomingJson);
+      const incomingPackageContents = JSON.parse(contextualisedJson);
 
       // Update devDependencies if requested
       if (this.answers.updateDevDependencies) {
@@ -155,7 +160,8 @@ module.exports = class extends Generator {
       // .sass-lint.yaml
       this.fs.copyTpl(
         this.templatePath('sass-lint.yml'),
-        this.destinationPath('.sass-lint.yml')
+        this.destinationPath('.sass-lint.yml'),
+        options
       );
 
       const updatedJson = JSON.stringify(packageContents, null, 2);
