@@ -43,7 +43,7 @@ Commands
 ##
 
 # Define docker images versions
-django_image="canonicalwebteam/django:v2.1.2"
+django_image="canonicalwebteam/django:v2.2.1"
 bundler_image="canonicalwebteam/bundler:v0.1.2"
 node_image="canonicalwebteam/node:v0.1.0"
 
