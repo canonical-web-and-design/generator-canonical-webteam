@@ -4,3 +4,4 @@ v0.2.2 (2017-05-19): Defaults: Remove static/css on clean
 v0.2.3 (2017-05-20): Use latest Django image
 v0.2.3 (2017-05-20): Defaults: Clean up more files
 v0.3.0 (2017-05-21): Intelligently update blocks in gitignore
+v1.0.0 (2017-08-20): Unify run script for all project types
