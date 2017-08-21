@@ -298,19 +298,21 @@ case $run_command in
         # Select run function and run command
         run_function="node_run"
         run_command="yarn run serve"
+        run_options=""
         if [ -f manage.py ]; then  # django
             run_function="python_run"
             run_command="python3 manage.py runserver 0.0.0.0:${PORT}"
         elif [ -f webapp.py ]; then  # flask
             run_function="python_run"
             run_command="flask run 0.0.0.0:${PORT}"
+            run_options="--env FLASK_APP=webapp.py"
         elif [ -f _config.yml ]; then  # jekyll
             run_function="bundler_run"
             run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
         fi
 
         # Run the serve container, publishing the port, and detaching if required
-        ${run_function} "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts}" ${run_command} $*
+        ${run_function} "${project}-serve" "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts} ${run_options}" ${run_command} $*
     ;;
     "stop")
         echo "Stopping all running containers for ${project}"
