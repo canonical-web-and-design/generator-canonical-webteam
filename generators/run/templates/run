@@ -33,7 +33,7 @@ Commands
 - test: Run \`yarn run test\`
 - stop: Stop any running containers
 - node [-p|--expose-port PORT] <args>: Run a command in the node container (optionally exposing a port to the host)
-- django [-p|--expose-port PORT] <args>: Run a command in a django container (optionally exposing a port to the host)
+- python [-p|--expose-port PORT] <args>: Run a command in a python container (optionally exposing a port to the host)
 - bundler [-p|--expose-port PORT] <args>: Run a command in a bundler container (optionally exposing a port to the host)
 - clean: Remove all images and containers, any installed dependencies and the .docker-project file
 - clean-cache: Empty cache files, which are saved between projects (eg, yarn)
@@ -44,7 +44,7 @@ Commands
 ##
 
 # Define docker images versions
-django_image="canonicalwebteam/django:v2.2.1"
+python_image="canonicalwebteam/python:v1.0.0"
 bundler_image="canonicalwebteam/bundler:v0.1.2"
 node_image="canonicalwebteam/node:v0.1.0"
 
@@ -98,7 +98,7 @@ else
 fi
 
 # Set project specific container names
-django_lib_volume="${project}-django-lib"
+python_lib_volume="${project}-python-lib"
 db_container="${project}-db"
 db_volume="${project}-db"
 network_name="${project}-net"
@@ -203,7 +203,7 @@ node_install () {
         ${node_image} yarn install  `# Install yarn dependencies`
 }
 
-django_run () {
+python_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
@@ -230,16 +230,20 @@ django_run () {
 
     # Choose debug variable
     debug="DEBUG=${RUN_DEBUG}"
-    if [ -f manage.py ]; then debug="DJANGO_DEBUG=${RUN_DEBUG}"; fi
+    if [ -f manage.py ]; then
+        debug="DJANGO_DEBUG=${RUN_DEBUG}"
+    elif [ -f webapp.py ]; then
+        debug="FLASK_DEBUG=${RUN_DEBUG}"
+    fi
 
-    # Run Django using the docker image
+    # Run the command in the python docker image
     run_as_user ${container_name} \
-        --volume ${django_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
+        --volume ${python_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
         --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
         --env PORT=${PORT}                                     `# Set the port correctly`  \
         --env ${debug}                                         `# Set debug mode`  \
         ${extra_options}                                       `# Any extra docker options`  \
-        ${django_image} $@                                     `# Run command in the Django image`
+        ${python_image} $@                                     `# Run command in the Python image`
 }
 
 # Find current run command
@@ -282,8 +286,11 @@ case $run_command in
         run_function="node_run"
         run_command="yarn run serve"
         if [ -f manage.py ]; then  # django
-            run_function="django_run"
-            run_command=""
+            run_function="python_run"
+            run_command="python3 manage.py runserver 0.0.0.0:${PORT}"
+        elif [ -f webapp.py ]; then  # flask
+            run_function="python_run"
+            run_command="flask run 0.0.0.0:${PORT}"
         elif [ -f _config.yml ]; then  # jekyll
             run_function="bundler_run"
             run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
@@ -354,7 +361,7 @@ case $run_command in
             echo "==="
             echo "Running Django tests"
             echo "==="
-            django_run "${project}-django-test" "" python3 manage.py test || test_error=true
+            python_run "${project}-django-test" "" python3 manage.py test || test_error=true
 
             echo "==="
             echo "Running flake8 tests"
@@ -364,8 +371,15 @@ case $run_command in
                 --volume `pwd`:`pwd` \
                 --workdir `pwd` \
                 --name "${project}-flake8-test" \
-                --entrypoint flake8 \
-                ${django_image} --exclude '*env*,node_modules' || test_error=true
+                ${python_image} flake8 --exclude '*env*,node_modules' || test_error=true
+        fi
+
+        # Generic python tests
+        if [ -f tests.py ]; then
+            echo "==="
+            echo "Running python tests from tests.py"
+            echo "==="
+            python_run "${project}-python-tests" "" python3 tests.py || test_error=true
         fi
 
         if ${test_error}; then
@@ -409,7 +423,7 @@ case $run_command in
             docker volume rm --force ${pip_cache_volume}
         fi
     ;;
-    "django")
+    "python")
         expose_port=""
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
@@ -424,7 +438,7 @@ case $run_command in
             esac
             shift
         done
-        django_run "${project}-django-$(date +'%s')" "${expose_port}" $@
+        python_run "${project}-python-$(date +'%s')" "${expose_port}" $@
     ;;
     "node")
         expose_port=""
@@ -462,3 +476,4 @@ case $run_command in
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
+
