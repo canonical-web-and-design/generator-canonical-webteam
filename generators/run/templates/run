@@ -346,6 +346,7 @@ case $run_command in
 
         kill_container "${project}-node-test"
         kill_container "${project}-django-test"
+        kill_container "${project}-python-test"
         kill_container "${project}-flake8-test"
 
         # Run node tests
@@ -362,7 +363,18 @@ case $run_command in
             echo "Running Django tests"
             echo "==="
             python_run "${project}-django-test" "" python3 manage.py test || test_error=true
+        fi
 
+        # Generic python tests
+        if [ -f tests.py ]; then
+            echo "==="
+            echo "Running python tests from tests.py"
+            echo "==="
+            python_run "${project}-python-test" "" python3 tests.py || test_error=true
+        fi
+
+        # Run flake8 (python syntax) checks
+        if [ -f manage.py ] || [ -f webapp.py ] || [ -f tests.py ]; then
             echo "==="
             echo "Running flake8 tests"
             echo "==="
@@ -374,14 +386,7 @@ case $run_command in
                 ${python_image} flake8 --exclude '*env*,node_modules' || test_error=true
         fi
 
-        # Generic python tests
-        if [ -f tests.py ]; then
-            echo "==="
-            echo "Running python tests from tests.py"
-            echo "==="
-            python_run "${project}-python-tests" "" python3 tests.py || test_error=true
-        fi
-
+        # Report success or failure
         if ${test_error}; then
             echo "==="
             echo "Tests failed"
