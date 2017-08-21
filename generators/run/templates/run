@@ -229,6 +229,16 @@ python_run () {
 
         # Wait for database to connect
         docker run ${tty} --rm --network "${network_name}" ${python_image} /wait-for-postgres db
+
+        # Provision database for django sites
+        if [ -f manage.py ]; then
+            run_as_user ${container_name} \
+                --volume ${python_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
+                --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
+                --network "${network_name}"                            `# Use an isolated network`  \
+                ${python_image} python3 manage.py migrate              `# Run command in the Python image`
+        fi
+
     fi
 
     # Choose debug variable
