@@ -207,7 +207,7 @@ python_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
-    if grep -q DATABASES */settings.py; then
+    if grep -q django.db.backends.postgresql_psycopg2 */settings.py; then
         # Create isolated network
         if ! docker network inspect ${network_name} &> /dev/null; then
             docker network create ${network_name}
@@ -226,6 +226,9 @@ python_run () {
                 --detach                     `# Run in the background` \
                 postgres                     `# Use the image for node version 7`
         fi
+
+        # Wait for database to connect
+        docker run --rm --network "${network_name}" ${python_image} /wait-for-postgres db
     fi
 
     # Choose debug variable
