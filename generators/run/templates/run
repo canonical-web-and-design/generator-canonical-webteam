@@ -44,7 +44,7 @@ Commands
 ##
 
 # Define docker images versions
-python_image="canonicalwebteam/python3:v1.0.0"
+python_image="canonicalwebteam/python3:v1.0.1"
 bundler_image="canonicalwebteam/bundler:v0.1.2"
 node_image="canonicalwebteam/node:v0.1.0"
 
