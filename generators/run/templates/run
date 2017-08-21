@@ -44,7 +44,7 @@ Commands
 ##
 
 # Define docker images versions
-python_image="canonicalwebteam/python:v1.0.0"
+python_image="canonicalwebteam/python3:v1.0.0"
 bundler_image="canonicalwebteam/bundler:v0.1.2"
 node_image="canonicalwebteam/node:v0.1.0"
 
@@ -228,7 +228,7 @@ python_run () {
         fi
 
         # Wait for database to connect
-        docker run --rm --network "${network_name}" ${python_image} /wait-for-postgres db
+        docker run ${tty} --rm --network "${network_name}" ${python_image} /wait-for-postgres db
     fi
 
     # Choose debug variable
