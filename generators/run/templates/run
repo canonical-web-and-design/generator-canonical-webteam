@@ -266,8 +266,6 @@ if [[ -n "${run_command}" ]]; then shift; fi
 # Do the real business
 case $run_command in
     ""|"serve")
-        node_install
-
         # Read optional arguments
         detach=""
         run_watcher=false
@@ -287,7 +285,11 @@ case $run_command in
             shift
         done
 
-        node_run "${project}-build" "" yarn run build
+        # Setup yarn dependencies
+        if [ -f package.json ]; then
+            node_install
+            node_run "${project}-build" "" yarn run build
+        fi
 
         # Run watch command in the background
         if ${run_watcher}; then
