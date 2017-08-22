@@ -306,7 +306,7 @@ case $run_command in
             run_command="python3 manage.py runserver 0.0.0.0:${PORT}"
         elif [ -f webapp.py ]; then  # flask
             run_function="python_run"
-            run_command="flask run --host 0.0.0.0:${PORT}"
+            run_command="flask run --host 0.0.0.0 --port ${PORT}"
             run_options="--env FLASK_APP=webapp.py"
         elif [ -f _config.yml ]; then  # jekyll
             run_function="bundler_run"
