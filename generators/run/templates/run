@@ -98,7 +98,7 @@ else
 fi
 
 # Set project specific container names
-python_lib_volume="${project}-python-lib"
+python_local_volume="${project}-python-local"
 db_container="${project}-db"
 db_volume="${project}-db"
 network_name="${project}-net"
@@ -233,7 +233,7 @@ python_run () {
         # Provision database for django sites
         if [ -f manage.py ]; then
             run_as_user ${container_name} \
-                --volume ${python_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
+                --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
                 --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
                 --network "${network_name}"                            `# Use an isolated network`  \
                 ${python_image} python3 manage.py migrate              `# Run command in the Python image`
@@ -251,7 +251,7 @@ python_run () {
 
     # Run the command in the python docker image
     run_as_user ${container_name} \
-        --volume ${python_lib_volume}:/usr/local/lib/          `# Store dependencies in a docker volume`  \
+        --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
         --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
         --env PORT=${PORT}                                     `# Set the port correctly`  \
         --env ${debug}                                         `# Set debug mode`  \
