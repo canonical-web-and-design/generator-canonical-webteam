@@ -3,9 +3,8 @@ const Generator = require('yeoman-generator');
 const introduction = `
 Available scripts:
 
-- run: Installs the basic ./run script for running yarn with docker
-- run-django: Install the ./run script for a Django project
-- run-django-db: Install the ./run script for a Django project with a database
+- django: Create a basic Django website project
+- run: Installs the ./run script for running projects with Docker
 
 To run one, type:
 
