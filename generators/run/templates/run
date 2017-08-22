@@ -245,7 +245,7 @@ python_run () {
     debug="DEBUG=${RUN_DEBUG}"
     if [ -f manage.py ]; then
         debug="DJANGO_DEBUG=${RUN_DEBUG}"
-    elif [ -f webapp.py ]; then
+    elif [ -f app.py ]; then
         debug="FLASK_DEBUG=${RUN_DEBUG}"
     fi
 
@@ -304,10 +304,10 @@ case $run_command in
         if [ -f manage.py ]; then  # django
             run_function="python_run"
             run_command="python3 manage.py runserver 0.0.0.0:${PORT}"
-        elif [ -f webapp.py ]; then  # flask
+        elif [ -f app.py ]; then  # flask
             run_function="python_run"
             run_command="flask run --host 0.0.0.0 --port ${PORT}"
-            run_options="--env FLASK_APP=webapp.py"
+            run_options="--env FLASK_APP=app.py"
         elif [ -f _config.yml ]; then  # jekyll
             run_function="bundler_run"
             run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
@@ -391,7 +391,7 @@ case $run_command in
         fi
 
         # Run flake8 (python syntax) checks
-        if [ -f manage.py ] || [ -f webapp.py ] || [ -f tests.py ]; then
+        if [ -f manage.py ] || [ -f app.py ] || [ -f tests.py ]; then
             echo "==="
             echo "Running flake8 tests"
             echo "==="
