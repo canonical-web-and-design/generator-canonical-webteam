@@ -232,13 +232,13 @@ python_run () {
             requirements_hash=$(md5 requirements.txt | awk '{print $4;}')
         fi
 
-        if [ ! -f ".requirements.hash" ] || [ "$(cat .requirements.hash)" != "${requirements_hash}" ]; then
+        if [ ! -f ".requirements.${project}.hash" ] || [ "$(cat .requirements.${project}.hash)" != "${requirements_hash}" ]; then
             echo "Updating dependencies from requirements.txt:" >> /dev/stderr
             docker_run "${pip_container}" \
                 --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
                 --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
                 ${python_image} pip3 install --requirement requirements.txt  # Install new dependencies
-            echo -n "${requirements_hash}" > .requirements.hash
+            echo -n "${requirements_hash}" > .requirements.${project}.hash
         fi
     fi
 

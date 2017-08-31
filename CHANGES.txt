@@ -5,3 +5,4 @@ v0.2.3 (2017-05-20): Use latest Django image
 v0.2.3 (2017-05-20): Defaults: Clean up more files
 v0.3.0 (2017-05-21): Intelligently update blocks in gitignore
 v1.0.0 (2017-08-20): Unify run script for all project types
+v1.1.0 (2017-08-31): Manage requirements.txt directly; Add flask support
