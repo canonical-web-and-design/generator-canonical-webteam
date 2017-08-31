@@ -44,7 +44,7 @@ Commands
 ##
 
 # Define docker images versions
-python_image="canonicalwebteam/python3:v1.0.1"
+python_image="canonicalwebteam/python3:v1.1.0"
 bundler_image="canonicalwebteam/bundler:v0.1.2"
 node_image="canonicalwebteam/node:v0.1.0"
 
@@ -100,6 +100,7 @@ fi
 # Set project specific container names
 python_local_volume="${project}-python-local"
 db_container="${project}-db"
+pip_container="${project}-db"
 db_volume="${project}-db"
 network_name="${project}-net"
 
@@ -144,9 +145,7 @@ kill_container () {
     fi
 }
 
-run_as_user () {
-    # Run a container as the current user and in the current directory context
-
+docker_run () {
     # Get options
     container_name=${1}; shift  # Get container_name as first argument
 
@@ -157,7 +156,6 @@ run_as_user () {
     docker run  \
         --name ${container_name}  `# Name the container` \
         --rm                      `# Remove the container once it's finished`  \
-        --user $(id -u):$(id -g)  `# Use the current user inside container`  \
         ${env_file}               `# Pass environment variables into the container, if file exists`  \
         --volume `pwd`:`pwd`      `# Mirror current directory inside container`  \
         --workdir `pwd`           `# Set current directory to the image's work directory`  \
@@ -172,7 +170,13 @@ bundler_run () {
     # Kill existing containers
     kill_container "${container_name}"
 
-    run_as_user "${container_name}" \
+    # Create etc volume with the new user
+    docker run --rm --volume ${project}-bundler-etc:/etc ${bundler_image} bash -c "getent passwd $(id -u) > /dev/null || (groupadd -g $(id -g) app-user && useradd -u $(id -u) -g $(id -g) app-user)"
+
+    # Run a command in the "bundler" image
+    docker_run "${container_name}" \
+        --user $(id -u):$(id -g)             `# Use the current user`  \
+        --volume ${project}-bundler-etc:/etc `# Use etc with corresponding user added`  \
         --volume ${project}-bundle:/bundler  `# Persist ruby dependencies in a docker volume`  \
         ${extra_options}                     `# Extra options`  \
         ${bundler_image} $@                  `# Run the jeklyll command`
@@ -183,8 +187,13 @@ node_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
+    # Create etc volume with the new user
+    docker run --rm --volume ${project}-node-etc:/etc ${node_image} bash -c "getent passwd $(id -u) > /dev/null || (groupadd -g $(id -g) app-user && useradd -u $(id -u) -g $(id -g) app-user)"
+
     # Run a command in the "node" image
-    run_as_user "${container_name}"  \
+    docker_run "${container_name}" \
+        --user $(id -u):$(id -g)                                 `# Use the current user`  \
+        --volume ${project}-node-etc:/etc                        `# Use etc with corresponding user added`  \
         --volume ${yarn_cache_volume}:/home/shared/.cache/yarn/  `# Bind cache to volume` \
         ${module_volumes[@]+"${module_volumes[@]}"}              `# Add any override modules as volumes`  \
         ${extra_options}                                         `# Extra options`  \
@@ -197,17 +206,43 @@ node_install () {
         node_run "${project}-bower-install" "" bower install
     fi
 
-    # Install yarn dependencies, without module overrides
-    run_as_user "${project}-yarn-install" \
+    # Create etc volume with the new user
+    docker run --rm --volume ${project}-node-etc:/etc ${node_image} bash -c "getent passwd $(id -u) > /dev/null || (groupadd -g $(id -g) app-user && useradd -u $(id -u) -g $(id -g) app-user)"
+
+    # Run a command in the "node" image
+    docker_run "${project}-yarn-install"  \
+        --user $(id -u):$(id -g)                                 `# Use the current user`  \
+        --volume ${project}-node-etc:/etc                        `# Use etc with corresponding user added`  \
         --volume ${yarn_cache_volume}:/home/shared/.cache/yarn/  `# Bind yarn cache to volume` \
-        ${node_image} yarn install  `# Install yarn dependencies`
+        ${node_image} yarn install                               `# Install yarn dependencies`
 }
 
 python_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
-    if grep -q django.db.backends.postgresql_psycopg2 */settings.py; then
+    # Create etc volume with the new user
+    docker run --rm --volume ${project}-python-etc:/etc ${python_image} bash -c "getent passwd $(id -u) > /dev/null || (groupadd -g $(id -g) app-user && useradd -u $(id -u) -g $(id -g) app-user)"
+
+    # Update dependencies if required
+    if [ -f requirements.txt ]; then
+        if type md5sum > /dev/null; then
+            requirements_hash=$(md5sum requirements.txt | awk '{print $1;}')
+        else
+            requirements_hash=$(md5 requirements.txt | awk '{print $4;}')
+        fi
+
+        if [ ! -f ".requirements.hash" ] || [ "$(cat .requirements.hash)" != "${requirements_hash}" ]; then
+            echo "Updating dependencies from requirements.txt:" >> /dev/stderr
+            docker_run "${pip_container}" \
+                --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
+                --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
+                ${python_image} pip3 install --requirement requirements.txt  # Install new dependencies
+            echo -n "${requirements_hash}" > .requirements.hash
+        fi
+    fi
+
+    if grep -q django.db.backends.postgresql_psycopg2 */settings.py 2> /dev/null; then
         # Create isolated network
         if ! docker network inspect ${network_name} &> /dev/null; then
             docker network create ${network_name}
@@ -227,14 +262,13 @@ python_run () {
                 postgres                     `# Use the image for node version 7`
         fi
 
-        # Wait for database to connect
-        docker run ${tty} --rm --network "${network_name}" ${python_image} /wait-for-postgres db
-
         # Provision database for django sites
         if [ -f manage.py ]; then
-            run_as_user ${container_name} \
+            # Run a command in the "node" image
+            docker_run "${container_name}" \
+                --user $(id -u):$(id -g)                               `# Use the current user`  \
+                --volume ${project}-python-etc:/etc                    `# Use etc with corresponding user added`  \
                 --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
-                --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
                 --network "${network_name}"                            `# Use an isolated network`  \
                 ${python_image} python3 manage.py migrate              `# Run command in the Python image`
         fi
@@ -245,14 +279,13 @@ python_run () {
     debug="DEBUG=${RUN_DEBUG}"
     if [ -f manage.py ]; then
         debug="DJANGO_DEBUG=${RUN_DEBUG}"
-    elif [ -f app.py ]; then
-        debug="FLASK_DEBUG=${RUN_DEBUG}"
     fi
 
     # Run the command in the python docker image
-    run_as_user ${container_name} \
+    docker_run ${container_name} \
+        --user $(id -u):$(id -g)                               `# Use the current user`  \
+        --volume ${project}-python-etc:/etc                    `# Use etc with corresponding user added`  \
         --volume ${python_local_volume}:/usr/local/            `# Store dependencies in a docker volume`  \
-        --volume ${pip_cache_volume}:/home/shared/.cache/pip/  `# Bind cache to volume` \
         --env PORT=${PORT}                                     `# Set the port correctly`  \
         --env ${debug}                                         `# Set debug mode`  \
         ${extra_options}                                       `# Any extra docker options`  \
@@ -304,10 +337,6 @@ case $run_command in
         if [ -f manage.py ]; then  # django
             run_function="python_run"
             run_command="python3 manage.py runserver 0.0.0.0:${PORT}"
-        elif [ -f app.py ]; then  # flask
-            run_function="python_run"
-            run_command="flask run --host 0.0.0.0 --port ${PORT}"
-            run_options="--env FLASK_APP=app.py"
         elif [ -f _config.yml ]; then  # jekyll
             run_function="bundler_run"
             run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
@@ -391,7 +420,7 @@ case $run_command in
         fi
 
         # Run flake8 (python syntax) checks
-        if [ -f manage.py ] || [ -f app.py ] || [ -f tests.py ]; then
+        if [ -f manage.py ] || [ -f tests.py ]; then
             echo "==="
             echo "Running flake8 tests"
             echo "==="
@@ -419,12 +448,24 @@ case $run_command in
         echo "Running 'clean' yarn script"
         node_run "${project}-clean" "" yarn run clean || true  # Run the clean script
 
-        echo "Removing all containers, volumes and networks for project: ${project}"
-        project_containers="$(docker ps --all --quiet --filter name=${project})"
+        echo "Removing docker objects for project: ${project}"
+
+        echo "- Removing containers using project volumes"
         project_volumes="$(docker volume ls --quiet --filter name=${project})"
-        project_networks="$(docker network ls --quiet --filter name=${project})"
-        if [ -n "${project_containers}" ]; then docker rm --force ${project_containers}; fi
+        for volume in ${project_volumes}; do
+            echo "  > Removing containers using volume ${volume}"
+            containers_using_volume="$(docker ps --all --quiet --filter volume=${volume})"
+            if [ -n "${containers_using_volume}" ]; then docker rm --force ${containers_using_volume}; fi
+        done
+        echo "- Removing project volumes"
         if [ -n "${project_volumes}" ]; then docker volume rm --force ${project_volumes}; fi
+
+        echo "- Removing remaining project containers"
+        project_containers="$(docker ps --all --quiet --filter name=${project})"
+        if [ -n "${project_containers}" ]; then docker rm --force ${project_containers}; fi
+
+        echo "- Removing project networks"
+        project_networks="$(docker network ls --quiet --filter name=${project})"
         if [ -n "${project_networks}" ]; then docker network rm ${project_networks}; fi
 
         echo "Removing .docker-project file"
