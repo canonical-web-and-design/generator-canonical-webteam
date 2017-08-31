@@ -1,9 +1,5 @@
 {
   "//": "Created by generator-canonical-webteam@<%= version %>",
-  "name": "ubuntu-website",
-  "version": "0.0.1",
-  "description": "Django website for ubuntu.com",
-  "main": "index.js",
   "scripts": {
     "//": "Scripts updated by generator-canonical-webteam@<%= version %>",
     "test": "sass-lint static/**/*.scss --verbose --no-exit",
@@ -11,12 +7,6 @@
     "watch": "node-sass --include-path node_modules --source-map true --watch static/sass --output static/css",
     "clean": "rm -rf node_modules yarn-error.log static/css *.log *.sqlite _site/ build/ .jekyll-metadata"
   },
-  "keywords": [
-    "website",
-    "ubuntu"
-  ],
-  "author": "Canonical webteam",
-  "license": "LGPL v3",
   "devDependencies": {
     "//": "Dependencies updated by generator-canonical-webteam@<%= version %>",
     "node-sass": "^4.5.3",
