@@ -463,6 +463,9 @@ case $run_command in
         fi
     ;;
     "clean")
+        echo "Remove requirements hash file"
+        rm -rf .requirements.${project}.hash
+
         echo "Running 'clean' yarn script"
         node_run "${project}-clean" "" yarn run clean || true  # Run the clean script
 
