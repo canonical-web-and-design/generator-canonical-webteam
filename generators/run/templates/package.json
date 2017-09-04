@@ -1,14 +1,11 @@
 {
-  "//": "Created by generator-canonical-webteam@<%= version %>",
   "scripts": {
-    "//": "Scripts updated by generator-canonical-webteam@<%= version %>",
     "test": "sass-lint static/**/*.scss --verbose --no-exit",
     "build": "node-sass --include-path node_modules static/sass --output static/css",
     "watch": "node-sass --include-path node_modules --source-map true --watch static/sass --output static/css",
     "clean": "rm -rf node_modules yarn-error.log static/css *.log *.sqlite _site/ build/ .jekyll-metadata"
   },
   "devDependencies": {
-    "//": "Dependencies updated by generator-canonical-webteam@<%= version %>",
     "node-sass": "^4.5.3",
     "sass-lint": "^1.10.2"
   }
