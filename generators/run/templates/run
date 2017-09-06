@@ -198,7 +198,7 @@ ruby_run () {
         if [ ! -f ".gemfile.${project}.hash" ] || [ "$(cat .gemfile.${project}.hash)" != "${gemfile_hash}" ]; then
             echo "Updating dependencies from Gemfile:" >> /dev/stderr
             docker_run "${gem_container}" \
-                --volume ${ruby_local_volume}:/usr/local/ `# Store dependencies in a docker volume`  \
+                --volume ${ruby_local_volume}:/usr/local  `# Store dependencies in a docker volume`  \
                 ${ruby_image} bundle install               # Install new dependencies
             echo -n "${gemfile_hash}" > .gemfile.${project}.hash
         fi
@@ -208,7 +208,7 @@ ruby_run () {
     docker_run "${container_name}" \
         --user $(id -u):$(id -g)                  `# Use the current user`  \
         --volume ${project}-bundler-etc:/etc      `# Use etc with corresponding user added`  \
-        --volume ${ruby_local_volume}:/usr/lcoal  `# Persist ruby dependencies in a docker volume`  \
+        --volume ${ruby_local_volume}:/usr/local  `# Persist ruby dependencies in a docker volume`  \
         ${extra_options}                          `# Extra options`  \
         ${ruby_image} $@                       `# Run the jeklyll command`
 }
