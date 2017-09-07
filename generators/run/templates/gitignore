@@ -41,7 +41,7 @@ _site/
 
 # [env] Local environment settings
 .docker-project
-.requirements.*.hash
+.*.*.hash
 .envrc
 env/
 env[23]/
