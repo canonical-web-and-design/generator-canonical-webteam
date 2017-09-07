@@ -45,7 +45,7 @@ Commands
 
 # Define docker images versions
 python_image="canonicalwebteam/python3:v1.1.0"
-bundler_image="canonicalwebteam/bundler:v0.1.2"
+ruby_image="canonicalwebteam/ruby:v0.1.1"
 node_image="canonicalwebteam/node:v0.2.1"
 
 # Global volume names
@@ -99,8 +99,10 @@ fi
 
 # Set project specific container names
 python_local_volume="${project}-python-local"
+ruby_local_volume="${project}-ruby-local"
 db_container="${project}-db"
-pip_container="${project}-db"
+pip_container="${project}-pip"
+gem_container="${project}-gem"
 db_volume="${project}-db"
 network_name="${project}-net"
 
@@ -175,7 +177,7 @@ docker_run () {
         $@                        `# Extra arguments`
 }
 
-bundler_run () {
+ruby_run () {
     container_name="${1}"; shift
     extra_options="${1:-}"; shift
 
@@ -183,15 +185,32 @@ bundler_run () {
     kill_container "${container_name}"
 
     # Create etc volume with the new user
-    create_current_user "${bundler_image}" "${project}-bundler-etc"
+    create_current_user "${ruby_image}" "${project}-bundler-etc"
+
+    # Update dependencies if required
+    if [ -f Gemfile ]; then
+        if type md5sum &> /dev/null; then
+            gemfile_hash=$(md5sum Gemfile | awk '{print $1;}')
+        else
+            gemfile_hash=$(md5 Gemfile | awk '{print $4;}')
+        fi
+
+        if [ ! -f ".gemfile.${project}.hash" ] || [ "$(cat .gemfile.${project}.hash)" != "${gemfile_hash}" ]; then
+            echo "Updating dependencies from Gemfile:" >> /dev/stderr
+            docker_run "${gem_container}" \
+                --volume ${ruby_local_volume}:/usr/local  `# Store dependencies in a docker volume`  \
+                ${ruby_image} bundle install               # Install new dependencies
+            echo -n "${gemfile_hash}" > .gemfile.${project}.hash
+        fi
+    fi
 
     # Run a command in the "bundler" image
     docker_run "${container_name}" \
-        --user $(id -u):$(id -g)             `# Use the current user`  \
-        --volume ${project}-bundler-etc:/etc `# Use etc with corresponding user added`  \
-        --volume ${project}-bundle:/bundler  `# Persist ruby dependencies in a docker volume`  \
-        ${extra_options}                     `# Extra options`  \
-        ${bundler_image} $@                  `# Run the jeklyll command`
+        --user $(id -u):$(id -g)                  `# Use the current user`  \
+        --volume ${project}-bundler-etc:/etc      `# Use etc with corresponding user added`  \
+        --volume ${ruby_local_volume}:/usr/local  `# Persist ruby dependencies in a docker volume`  \
+        ${extra_options}                          `# Extra options`  \
+        ${ruby_image} $@                       `# Run the jeklyll command`
 }
 
 node_run () {
@@ -356,7 +375,7 @@ case $run_command in
             run_command="flask run --host 0.0.0.0 --port ${PORT}"
             run_options="--env FLASK_APP=app.py"
         elif [ -f _config.yml ]; then  # jekyll
-            run_function="bundler_run"
+            run_function="ruby_run"
             run_command="jekyll serve -P ${PORT} -H 0.0.0.0"
         fi
 
@@ -389,7 +408,7 @@ case $run_command in
         done
         if ${watch_site}; then
             trap "kill_container ${project}-watch-site" EXIT
-            bundler_run "${project}-watch-site" "--detach" jekyll build --watch  # Run site watcher in the background
+            ruby_run "${project}-watch-site" "--detach" jekyll build --watch  # Run site watcher in the background
         fi
         node_install
         node_run "${project}-build" "" yarn run build
@@ -400,7 +419,7 @@ case $run_command in
         node_run "${project}-build" "" yarn run build
         if [ -f _config.yml ]; then
             # For jekyll sites
-            bundler_run "${project}-build-site" "" jekyll build
+            ruby_run "${project}-build-site" "" jekyll build
         fi
     ;;
     "test")
@@ -463,8 +482,8 @@ case $run_command in
         fi
     ;;
     "clean")
-        echo "Remove requirements hash file"
-        rm -rf .requirements.${project}.hash
+        echo "Remove hash files"
+        rm -rf .requirements.${project}.hash .gemfile.${project}.hash
 
         echo "Running 'clean' yarn script"
         node_run "${project}-clean" "" yarn run clean || true  # Run the clean script
@@ -556,7 +575,7 @@ case $run_command in
             esac
             shift
         done
-        bundler_run "${project}-bundler-$(date +'%s')" "${expose_port}" $@
+        ruby_run "${project}-bundler-$(date +'%s')" "${expose_port}" $@
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
