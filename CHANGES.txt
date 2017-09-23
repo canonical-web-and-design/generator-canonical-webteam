@@ -7,4 +7,5 @@ v0.3.0 (2017-05-21): Intelligently update blocks in gitignore
 v1.0.0 (2017-08-20): Unify run script for all project types
 v1.1.0 (2017-08-31): Manage requirements.txt directly; Add flask support
 v1.1.0 (2017-09-06): Simplify ruby dependencies
-v1.2.0 (2017-09-06): Proxy support
+v1.2.0 (2017-09-22): Proxy support
+v2.0.0 (2017-09-23): Use a single "dev" image; Update package.json commands
