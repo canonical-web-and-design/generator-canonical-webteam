@@ -27,8 +27,8 @@ module.exports = class extends Generator {
       prompts.push(
         {
           type    : 'confirm',
-          name    : 'updateDevDependencies',
-          message : 'Should we update "devDependencies" in package.json?'
+          name    : 'updateDependencies',
+          message : 'Should we update "dependencies" in package.json?'
         }
       );
       prompts.push(
@@ -130,7 +130,7 @@ module.exports = class extends Generator {
         this.destinationPath('package.json'),
         options
       );
-    } else if (this.answers.updateDevDependencies || this.answers.updateScripts) {
+    } else if (this.answers.updateDependencies || this.answers.updateScripts) {
       // We're updating package.json, so parse contents of both new and old package.json
       const currentJson = this.fs.read(this.destinationPath('package.json'));
       const incomingJson = this.fs.read(this.templatePath('package.json'));
@@ -138,12 +138,12 @@ module.exports = class extends Generator {
       const packageContents = JSON.parse(currentJson);
       const incomingPackageContents = JSON.parse(contextualisedJson);
 
-      // Update devDependencies if requested
-      if (this.answers.updateDevDependencies) {
-        const currentDevDependencies = packageContents['devDependencies'] || {};
-        const incomingDevDependencies = incomingPackageContents['devDependencies'];
-        const updatedDevDependencies = util._extend(currentDevDependencies, incomingDevDependencies);
-        packageContents['devDependencies'] = updatedDevDependencies;
+      // Update dependencies if requested
+      if (this.answers.updateDependencies) {
+        const currentDependencies = packageContents['dependencies'] || {};
+        const incomingDependencies = incomingPackageContents['dependencies'];
+        const updatedDependencies = util._extend(currentDependencies, incomingDependencies);
+        packageContents['dependencies'] = updatedDependencies;
       }
 
       // Update scripts if requested
