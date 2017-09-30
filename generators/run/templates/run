@@ -193,7 +193,7 @@ run_as_user () {
     uid=$(id -u)
     gid=$(id -g)
 
-    if ! docker volume inspect -f "Volume exists: {{.Name}}" ${etc_volume} 2> /dev/null; then
+    if ! docker volume inspect -f " " ${etc_volume} 2> /dev/null; then
         etc_run="docker run --rm --volume ${etc_volume}:/etc ${dev_image}"
         if ! ${etc_run} grep -P "${gid}:$" /etc/group; then
             ${etc_run} groupadd -g ${gid} app-user
