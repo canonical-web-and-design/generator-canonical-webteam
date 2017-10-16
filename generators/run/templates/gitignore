@@ -38,6 +38,11 @@ package-lock.json
 
 # [build] Built files
 /build/
+/parts/
+/prime/
+/stage/
+.snapcraft/
+*.snap
 _site/
 *.*.map
 
