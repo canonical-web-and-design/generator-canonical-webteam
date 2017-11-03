@@ -42,7 +42,7 @@ Commands
 ##
 
 # Define docker images versions
-dev_image="canonicalwebteam/dev:v1.1.0"
+dev_image="canonicalwebteam/dev:v1.2.0"
 if [ -n "${DOCKER_REGISTRY:-}" ]; then
     dev_image="${DOCKER_REGISTRY}/${dev_image}"
 fi
@@ -279,6 +279,7 @@ has_file_changed() {
 update_dependencies() {
     has_file_changed yarn.lock && yarnlock_changed=true || yarnlock_changed=false
     has_file_changed package.json && packagejson_changed=true || packagejson_changed=false
+    has_file_changed bower.json && bowerjson_changed=true || bowerjson_changed=false
     has_file_changed Gemfile && gemfile_changed=true || gemfile_changed=false
     has_file_changed Gemfile.lock && gemfilelock_changed=true || gemfilelock_changed=false
     has_file_changed requirements.txt && requirements_changed=true || requirements_changed=false
@@ -286,6 +287,11 @@ update_dependencies() {
     # Yarn
     if ${packagejson_changed} || ${yarnlock_changed}; then
         run_as_user "" yarn install
+    fi
+
+    # Bower
+    if ${bowerjson_changed}; then
+        run_as_user "" bower install
     fi
 
     # Ruby bundler
