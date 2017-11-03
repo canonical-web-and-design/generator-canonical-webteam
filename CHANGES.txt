@@ -11,3 +11,4 @@ v1.2.0 (2017-09-22): Proxy support
 v2.0.0 (2017-09-23): Use a single "dev" image; Update package.json commands
 v2.1.0 (2017-09-29): Support for bundler; Change "debug" to "exec"; Better package.json defaults
 v2.1.1 (2017-09-30): Provide COMMIT_ID environment variable in running containers
+v2.2.0 (2017-11-03): Add Bower dependency management
