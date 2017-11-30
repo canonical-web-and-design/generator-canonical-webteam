@@ -83,11 +83,14 @@ fi
 
 # Grab HTTP_PROXY settings from the host
 http_proxy=""
+yarn_proxy=""
 if [ -n "${HTTP_PROXY:-}" ]; then
     http_proxy="--env HTTP_PROXY=${HTTP_PROXY} --env http_proxy=${HTTP_PROXY}"
+    yarn_proxy="--proxy ${HTTP_PROXY}"
 fi
 if [ -n "${HTTPS_PROXY:-}" ]; then
     http_proxy="${http_proxy} --env HTTPS_PROXY=${HTTPS_PROXY} --env https_proxy=${HTTPS_PROXY}"
+    yarn_proxy="${yarn_proxy} --https-proxy ${HTTPS_PROXY}"
 fi
 
 # Generate the project name
@@ -286,7 +289,7 @@ update_dependencies() {
 
     # Yarn
     if ${packagejson_changed} || ${yarnlock_changed}; then
-        run_as_user "" yarn install
+        run_as_user "" yarn install ${yarn_proxy}
     fi
 
     # Bower
