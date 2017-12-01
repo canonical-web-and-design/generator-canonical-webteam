@@ -369,6 +369,10 @@ case $run_command in
     "stop")
         echo "Stopping all running containers for ${project}"
         running_containers="$(docker ps --quiet --filter name=${project})"
+        if [ -z "${running_containers}" ]; then
+            echo "No running containers found"
+            exit 0
+        fi
         docker kill ${running_containers}
     ;;
     "watch")
