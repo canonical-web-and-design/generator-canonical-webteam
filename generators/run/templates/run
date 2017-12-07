@@ -363,8 +363,17 @@ case $run_command in
             run_command="bundle exec jekyll serve -P ${PORT} -H 0.0.0.0"
         fi
 
+        publish_extra_ports=""
+        if [ -n "${EXTRA_PORTS:-}" ]; then
+            IFS=', ' read -r -a ports_array <<< "$EXTRA_PORTS"
+            for extra_port in "${ports_array[@]}"
+            do
+                publish_extra_ports="${publish_extra_ports} --publish $extra_port:$extra_port"
+            done
+        fi
+
         # Run the serve container, publishing the port, and detaching if required
-        ${run_function} "--env PORT=${PORT} --publish ${PORT}:${PORT} ${detach} ${run_serve_docker_opts} ${run_options}" ${run_command} $*
+        ${run_function} "--env PORT=${PORT} --publish ${PORT}:${PORT} ${publish_extra_ports} ${detach} ${run_serve_docker_opts} ${run_options}" ${run_command} $*
     ;;
     "stop")
         echo "Stopping all running containers for ${project}"
