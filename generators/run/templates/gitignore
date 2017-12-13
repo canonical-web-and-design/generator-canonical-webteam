@@ -50,6 +50,7 @@ _site/
 .docker-project
 .*.hash
 .envrc
+.env.local
 env/
 env[23]/
 
