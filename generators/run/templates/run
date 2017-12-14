@@ -50,7 +50,7 @@ fi
 # Interactivity options
 [ -t 1 ] && tty="--tty --interactive" || tty=""           # Do we have a terminal?
 [ -f .env ] && env_file="--env-file .env" || env_file=""  # Do we have an env file?
-[ -f .env.local ] && env_file="${env_file} --env-file .env.local" || env_file=env_file  # Do we have a local env file?
+[ -f .env.local ] && env_file="${env_file} --env-file .env.local" || env_file=$env_file  # Do we have a local env file?
 
 # Defaults environment settings
 PORT=8000
