@@ -193,20 +193,7 @@ docker_run () {
 run_as_user () {
     run_as_user_options="${1}"; shift
 
-    # Create local user and group in the dev image
-    uid=$(id -u)
-    gid=$(id -g)
-
-    if ! docker volume inspect -f " " ${etc_volume} 2> /dev/null; then
-        etc_run="docker run --rm --volume ${etc_volume}:/etc ${dev_image}"
-        if ! ${etc_run} grep -P "${gid}:$" /etc/group; then
-            ${etc_run} groupadd -g ${gid} app-user
-        fi
-
-        if ! ${etc_run} grep -P "x:${uid}:" /etc/passwd; then
-            ${etc_run} useradd -u ${uid} -g ${gid} app-user
-        fi
-    fi
+    create_etc_volume
 
     docker_run "--user $(id -u):$(id -g) ${run_as_user_options}" $@
 }
@@ -254,6 +241,23 @@ python_run () {
     run_as_user "--env ${debug} ${python_run_options}" $@
 }
 
+create_etc_volume() {
+    # Create local user and group in the dev image
+    uid=$(id -u)
+    gid=$(id -g)
+
+    if ! docker volume inspect -f " " ${etc_volume} 2> /dev/null; then
+        etc_run="docker run --rm --volume ${etc_volume}:/etc ${dev_image}"
+        if ! ${etc_run} grep -P "${gid}:$" /etc/group; then
+            ${etc_run} groupadd -g ${gid} app-user
+        fi
+
+        if ! ${etc_run} grep -P "x:${uid}:" /etc/passwd; then
+            ${etc_run} useradd -u ${uid} -g ${gid} app-user
+        fi
+    fi
+}
+
 has_file_changed() {
     file_to_check=$1
     hash_file=".${file_to_check}.${project}.hash"
@@ -287,6 +291,9 @@ update_dependencies() {
     has_file_changed Gemfile && gemfile_changed=true || gemfile_changed=false
     has_file_changed Gemfile.lock && gemfilelock_changed=true || gemfilelock_changed=false
     has_file_changed requirements.txt && requirements_changed=true || requirements_changed=false
+
+    # Make sure the etc volume has been created first
+    create_etc_volume
 
     # Yarn
     if ${packagejson_changed} || ${yarnlock_changed}; then
