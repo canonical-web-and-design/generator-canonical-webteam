@@ -511,6 +511,7 @@ case $run_command in
     ;;
     "exec")
         expose_ports=""
+        env_vars=""
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
@@ -520,11 +521,16 @@ case $run_command in
                     expose_ports="${expose_ports} --publish ${2}:${2}"
                     shift
                 ;;
+                -e|--env)
+                    if [ -z "${2:-}" ]; then invalid "Missing environment variables. Usage: --env XXXX=yyyy"; fi
+                    env_vars="${env_vars} --env ${2}"
+                    shift
+                ;;
                 *) invalid "Option '${key}' not recognised." ;;
             esac
             shift
         done
-        run_as_user "${expose_ports}" $@
+        run_as_user "${expose_ports} ${env_vars}" $@
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
