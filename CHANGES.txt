@@ -15,3 +15,4 @@ v2.2.0 (2017-11-03): Add Bower dependency management
 v2.4.1 (2017-12-14): Add local environment file to share secrets
 v2.5.0 (2017-12-19): Update docker image to 1.4
 v2.6.0 (2018-02-12): Fix module volumes; Allow exporting multiple ports in exec
+v2.6.1 (2018-02-12): Optional environment variables for exec
