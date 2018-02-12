@@ -516,7 +516,7 @@ case $run_command in
             key="$1"
 
             case $key in
-                -p|--expose-ports)
+                -p|--expose-port)
                     if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
                     expose_ports="${expose_ports} --publish ${2}:${2}"
                     shift
