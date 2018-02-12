@@ -510,21 +510,21 @@ case $run_command in
         docker volume rm ${cache_volume}
     ;;
     "exec")
-        expose_port=""
+        expose_ports=""
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
             case $key in
-                -p|--expose-port)
+                -p|--expose-ports)
                     if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
-                    expose_port="--publish ${2}:${2}"
+                    expose_ports="${expose_ports} --publish ${2}:${2}"
                     shift
                 ;;
                 *) invalid "Option '${key}' not recognised." ;;
             esac
             shift
         done
-        run_as_user "${expose_port}" $@
+        run_as_user "${expose_ports}" $@
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
