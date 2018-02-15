@@ -138,6 +138,10 @@ while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
         --no-debug) RUN_DEBUG=false ;;
         -m|--node-module)
             if [ -z "${2:-}" ]; then invalid "Missing module name. Usage: --node-module <path-to-module>."; fi
+            # Ensure directories exist, ready to host module volumes
+            if [ ! -d "`pwd`/node_modules/$(basename ${2})" ]; then
+                mkdir -p "`pwd`/node_modules/$(basename ${2})"
+            fi
             module_volumes="${module_volumes} --volume=${2}:`pwd`/node_modules/$(basename ${2})"
             shift
         ;;
