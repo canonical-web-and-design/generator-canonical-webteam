@@ -17,3 +17,4 @@ v2.5.0 (2017-12-19): Update docker image to 1.4
 v2.6.0 (2018-02-12): Fix module volumes; Allow exporting multiple ports in exec
 v2.6.1 (2018-02-12): Optional environment variables for exec
 v2.6.2 (2018-02-12): Rename --expose-ports to --expose-port
+v2.6.3 (2018-02-15): Prevent module volumes from creating directories as root
