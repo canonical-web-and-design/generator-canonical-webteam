@@ -63,7 +63,7 @@ fi
 
 # Other variables
 run_serve_docker_opts="${CANONICAL_WEBTEAM_RUN_SERVE_DOCKER_OPTS:-}"
-module_volumes=()
+module_volumes=""
 
 ##
 # Check docker is installed correctly
@@ -138,7 +138,11 @@ while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
         --no-debug) RUN_DEBUG=false ;;
         -m|--node-module)
             if [ -z "${2:-}" ]; then invalid "Missing module name. Usage: --node-module <path-to-module>."; fi
-            module_volumes+=("--volume" "${2}":"`pwd`/node_modules/$(basename ${2})")
+            # Ensure directories exist, ready to host module volumes
+            if [ ! -d "`pwd`/node_modules/$(basename ${2})" ]; then
+                mkdir -p "`pwd`/node_modules/$(basename ${2})"
+            fi
+            module_volumes="${module_volumes} --volume=${2}:`pwd`/node_modules/$(basename ${2})"
             shift
         ;;
         -h|--help) echo "$USAGE"; exit ;;
@@ -185,6 +189,7 @@ docker_run () {
         --env COMMIT_ID=${commit_id} `# Pass through the commit ID` \
         ${env_file}                  `# Pass environment variables into the container, if file exists`  \
         ${http_proxy}                `# Include HTTP proxy if needed`  \
+        ${module_volumes}            `# Add module volumes`  \
         ${tty}                       `# Attach a pseudo-terminal, if relevant`  \
         ${docker_run_options}        `# Extra options`  \
         ${dev_image} $@              `# Run command in the image`
@@ -509,21 +514,27 @@ case $run_command in
         docker volume rm ${cache_volume}
     ;;
     "exec")
-        expose_port=""
+        expose_ports=""
+        env_vars=""
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
             case $key in
                 -p|--expose-port)
                     if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
-                    expose_port="--publish ${2}:${2}"
+                    expose_ports="${expose_ports} --publish ${2}:${2}"
+                    shift
+                ;;
+                -e|--env)
+                    if [ -z "${2:-}" ]; then invalid "Missing environment variables. Usage: --env XXXX=yyyy"; fi
+                    env_vars="${env_vars} --env ${2}"
                     shift
                 ;;
                 *) invalid "Option '${key}' not recognised." ;;
             esac
             shift
         done
-        run_as_user "${expose_port}" $@
+        run_as_user "${expose_ports} ${env_vars}" $@
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
 esac
