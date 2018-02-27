@@ -1,6 +1,6 @@
 {
   "name": "generator-canonical-webteam",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Generators for creating and maintaining Canonical webteam projects",
   "homepage": "https://design.canonical.com/team",
   "author": {

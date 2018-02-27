@@ -19,3 +19,4 @@ v2.6.1 (2018-02-12): Optional environment variables for exec
 v2.6.2 (2018-02-12): Rename --expose-ports to --expose-port
 v2.6.3 (2018-02-15): Prevent module volumes from creating directories as root
 v2.7.0 (2018-02-15): Improved dependency checking
+v2.7.1 (2018-02-27): Use macOS md5 command on macOS
