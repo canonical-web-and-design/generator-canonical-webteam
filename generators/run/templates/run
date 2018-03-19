@@ -42,7 +42,7 @@ Commands
 ##
 
 # Define docker images versions
-dev_image="canonicalwebteam/dev:v1.4.0"
+dev_image="canonicalwebteam/dev:v1.5.2"
 if [ -n "${DOCKER_REGISTRY:-}" ]; then
     dev_image="${DOCKER_REGISTRY}/${dev_image}"
 fi
@@ -319,14 +319,18 @@ update_dependencies() {
         fi
     fi
 
-    # Install pip dependecies
+    # Install python dependencies
     if [ -f requirements.txt ]; then
-        requirements_hash=$(${md5_command} requirements.txt | cut -c1-8)
-        pip_dependencies_hash=$(docker run --volume ${etc_volume}:/etc ${dev_image} bash -c 'find $(find /usr/local/lib/ -maxdepth 1 -name "python*" -type d | sort | tail -n 1)/dist-packages -type f -print0 | sort -z | xargs -0 '${md5_command}' | '${md5_command}' | cut -c1-8')-${requirements_hash}
+        echo "Please convert requirements.txt to Pipfile using `pipenv install --three`."
+        exit
+    elif [ -f Pipfile ]; then
+        pipfile_hash=$(${md5_command} Pipfile | cut -c1-8 || echo '')
+        pip_dependencies_hash=$(docker run --volume ${etc_volume}:/etc ${dev_image} bash -c 'find $(find /usr/local/lib/ -maxdepth 1 -name "python*" -type d | sort | tail -n 1)/dist-packages -type f -print0 | sort -z | xargs -0 '${md5_command}' | '${md5_command}' | cut -c1-8')-${pipfile_hash}
         if [ ! -f .pip.${project}.hash ] || [ "${pip_dependencies_hash}" != "$(cat .pip.${project}.hash)" ]; then
             echo "Installing new pip dependencies"
-            docker_run "" pip3 install --requirement requirements.txt
-            pip_dependencies_hash=$(docker run --volume ${etc_volume}:/etc ${dev_image} bash -c 'find $(find /usr/local/lib/ -maxdepth 1 -name "python*" -type d | sort | tail -n 1)/dist-packages -type f -print0 | sort -z | xargs -0 '${md5_command}' | '${md5_command}' | cut -c1-8')-${requirements_hash}
+            docker_run "" pipenv install --system --three
+            pipfile_hash=$(${md5_command} Pipfile | cut -c1-8)
+            pip_dependencies_hash=$(docker run --volume ${etc_volume}:/etc ${dev_image} bash -c 'find $(find /usr/local/lib/ -maxdepth 1 -name "python*" -type d | sort | tail -n 1)/dist-packages -type f -print0 | sort -z | xargs -0 '${md5_command}' | '${md5_command}' | cut -c1-8')-${pipfile_hash}
             echo ${pip_dependencies_hash} > .pip.${project}.hash
         else
             echo "Pip dependencies haven't changed. To force an update, delete .pip.${project}.hash."
