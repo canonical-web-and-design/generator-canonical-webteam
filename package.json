@@ -1,8 +1,8 @@
 {
   "name": "generator-canonical-webteam",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "Generators for creating and maintaining Canonical webteam projects",
-  "homepage": "https://design.canonical.com/team",
+  "homepage": "https://github.com/canonical-webteam/generator-canonical-webteam/",
   "author": {
     "name": "Canonical webteam",
     "email": "webteam@canonical.com",
