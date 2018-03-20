@@ -321,7 +321,13 @@ update_dependencies() {
 
     # Install python dependencies
     if [ -f requirements.txt ]; then
-        echo "Please convert requirements.txt to Pipfile using './run exec pipenv install --three' (or '--two' if your project still lives in the past)."
+        echo "Please convert requirements.txt to Pipfile using:"
+        echo "    [sudo] pip install pipenv    # Install pipenv"
+        echo "    pipenv install --three       # Or '--two' if your project still lives in the past"
+        echo "    pipenv --rm                  # Remove the virtualenv"
+        echo "    [sudo] pip uninstall pipenv  # Optionally remove pipenv"
+        echo "    rm requirements.txt          # Remove the redundant requirements.txt"
+        echo "NB: You may also want to now edit Pipfile to set all modules to '*' rather than pinned versions"
         exit
     elif [ -f Pipfile ]; then
         pipfile_hash=$(${md5_command} Pipfile | cut -c1-8 || echo '')
