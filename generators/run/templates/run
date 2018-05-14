@@ -108,7 +108,7 @@ fi
 if [[ -f ".docker-project" ]]; then
     project=$(cat .docker-project)
 else
-    directory=$(basename `pwd`)
+    directory="$(basename "$(pwd)")"
     hash=$(pwd | ${md5_command} | cut -c1-8)
     project=canonical-webteam-${directory}-${hash}
     echo $project > .docker-project
@@ -190,8 +190,8 @@ docker_run () {
     docker run  \
         --name ${container_name}     `# Name the container` \
         --rm                         `# Remove the container once it's finished`  \
-        --volume `pwd`:`pwd`         `# Mirror current directory inside container`  \
-        --workdir `pwd`              `# Set current directory to the image's work directory`  \
+        --volume "$(pwd):$(pwd)"     `# Mirror current directory inside container`  \
+        --workdir "$(pwd)"           `# Set current directory to the image's work directory`  \
         --volume ${etc_volume}:/etc  `# Use etc with corresponding user added`  \
         --volume ${usr_local_volume}:/usr/local/       `# Bind local folder to volume`  \
         --volume ${cache_volume}:/home/shared/.cache/  `# Bind cache to volume` \
