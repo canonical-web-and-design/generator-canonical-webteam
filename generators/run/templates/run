@@ -434,28 +434,8 @@ case $run_command in
         test_error=false
 
         # Run node tests
-        if [ -f package.json ]; then
-            echo "- Running yarn tests"
-            run_as_user "" yarn run test || test_error=true
-        fi
-
-        # Run django tests
-        if [ -f manage.py ]; then
-            echo "- Running Django tests"
-            python_run "" python3 manage.py test || test_error=true
-        fi
-
-        # Generic python tests
-        if [ -f tests.py ]; then
-            echo "- Running python tests from tests.py"
-            python_run "" python3 tests.py || test_error=true
-        fi
-
-        # Run flake8 (python syntax) checks
-        if [ -f manage.py ] || [ -f app.py ] || [ -f tests.py ]; then
-            echo "- Running flake8 tests"
-            python_run "" flake8 --exclude '*env*,node_modules' || test_error=true
-        fi
+        echo "- Running yarn tests"
+        run_as_user "" yarn run test || test_error=true
 
         # Report success or failure
         if ${test_error}; then
