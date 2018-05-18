@@ -22,3 +22,4 @@ v2.7.0 (2018-02-15): Improved dependency checking
 v2.7.1 (2018-02-27): Use macOS md5 command on macOS
 v3.0.0 (2018-03-20): Always use "yarn run serve" for serving site
 v3.0.1 (2018-03-21): Support explicitly specifying env vars for any ./run command with --env
+v3.1.0 (2018-05-18): Add port forwarding, simplify tests to always run through package.json
