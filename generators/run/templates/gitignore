@@ -41,6 +41,7 @@ package-lock.json
 /parts/
 /prime/
 /stage/
+*.egg-info
 .snapcraft/
 *.snap
 _site/
