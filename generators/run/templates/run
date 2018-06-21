@@ -342,7 +342,7 @@ case $run_command in
 
         # Read optional arguments
         detach=""
-        forward_ports=()
+        forward_ports=("")
         run_watcher=false
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
@@ -385,7 +385,9 @@ case $run_command in
 
         publish_forward_ports=""
         for forward_port in "${forward_ports[@]}"; do
-            publish_forward_ports="${publish_forward_ports} --publish ${forward_port}:${PORT}"
+            if [ -n "${forward_port}" ]; then
+                publish_forward_ports="${publish_forward_ports} --publish ${forward_port}:${PORT}"
+            fi
         done
 
         # Run the serve container, publishing the port, and detaching if required
