@@ -16,8 +16,8 @@
   "author": "Canonical webteam",
   "license": "LGPL v3",
   "devDependencies": {
-    "node-sass": "^4.5.3",
-    "sass-lint": "^1.10.2",
+    "node-sass": "4.11.0",
+    "sass-lint": "1.12.1",
     "vanilla-brochure-theme": "1.0.4"
   }
 }
