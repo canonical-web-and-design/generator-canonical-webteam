@@ -5,7 +5,7 @@
   ],
   "packageRules": [
     {
-      "depTypeList": ["devDependencies"],
+      "languages": ["python"],
       "extends": [":automergeMinor"]
     }
   ]
