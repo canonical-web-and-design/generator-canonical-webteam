@@ -9,4 +9,4 @@ django-unslashed==0.3.0
 feedparser==5.2.1
 requests==2.21.0
 requests-cache==0.4.13
-ubuntudesign.gsa==1.0.5
+ubuntudesign.gsa==1.1.0
