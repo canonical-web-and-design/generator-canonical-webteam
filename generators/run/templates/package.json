@@ -6,7 +6,7 @@
     "test": "sass-lint static/**/*.scss --verbose --no-exit"
   },
   "dependencies": {
-    "autoprefixer": "9.4.10",
+    "autoprefixer": "9.5.0",
     "cssnano": "3.10.0",
     "node-sass": "4.11.0",
     "postcss-cli": "6.1.2",
