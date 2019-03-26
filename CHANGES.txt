@@ -26,4 +26,5 @@ v3.1.0 (2018-05-18): Add port forwarding, simplify tests to always run through p
 v3.2.0 (2018-06-18): Update dev image to v1.6.0 which uses Ubuntu Bionic as a base image
 v3.2.1 (2018-06-25): Update dev image to v1.6.1 to be able to mount a .ssh folder
 v3.2.2 (2018-10-22): Update dev image to v1.6.2 to use node v8.10.0
-v3.2.2 (2018-10-22): Update dev image to v1.6.3 which includes black
+v3.2.3 (2018-10-22): Update dev image to v1.6.3 which includes black
+v3.3.0 (2019-03-26): Add back database support for Django sites
