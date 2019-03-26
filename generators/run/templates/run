@@ -212,41 +212,6 @@ run_as_user () {
     docker_run "--user $(id -u):$(id -g) ${run_as_user_options}" $@
 }
 
-python_run () {
-    python_run_options="${1}"; shift
-
-    if grep -q django.db.backends.postgresql_psycopg2 */settings.py 2> /dev/null; then
-        # Create isolated network
-        if ! docker network inspect ${network_name} &> /dev/null; then
-            docker network create ${network_name}
-        fi
-        python_run_options="${python_run_options} --network ${network_name}"
-
-        # Start the database
-        if [[ "${python_run_options}" != *"--detach"* ]]; then trap "kill_container ${project}-db" EXIT; fi
-        if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
-            docker run \
-                --name ${db_container}       `# Name the container`  \
-                --rm                         `# Remove the container once it's finished`  \
-                --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
-                 ${http_proxy}               `# Include HTTP proxy if needed`  \
-                --network "${network_name}"  `# Use an isolated network`  \
-                --network-alias db           `# Call this container "db" on the network so it can be found`  \
-                --detach                     `# Run in the background` \
-                postgres                     `# Use the image for node version 7`
-        fi
-
-        # Provision database for django sites
-        if [ -f manage.py ]; then
-            docker_run "--network ${network_name}" python3 manage.py migrate
-        fi
-
-    fi
-
-    # Run the command in the python docker image
-    run_as_user "${python_run_options}" $@
-}
-
 create_etc_volume() {
     # Create local user and group in the dev image
     uid=$(id -u)
@@ -390,8 +355,46 @@ case $run_command in
             fi
         done
 
+        network=""
+
+        # Run the database if necessary
+        if grep -q django.db.backends.postgresql_psycopg2 */settings.py 2> /dev/null; then
+            network="--network ${network_name}"
+
+            # Create isolated network
+            if ! docker network inspect ${network_name} &> /dev/null; then
+                docker network create ${network_name}
+            fi
+
+            # Start the database
+            trap "kill_container ${db_container}" EXIT;
+            if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
+                docker run \
+                    --name ${db_container}       `# Name the container`  \
+                    --rm                         `# Remove the container once it's finished`  \
+                    --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
+                    ${http_proxy}                `# Include HTTP proxy if needed`  \
+                    ${network}                   `# Use an isolated network`  \
+                    --network-alias db           `# Call this container "db" on the network so it can be found`  \
+                    --detach                     `# Run in the background` \
+                    postgres                     `# Use the image for node version 7`
+            fi
+
+            # Wait for it
+            db_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${db_container})
+            until nc -z ${db_ip} 5432; do
+                echo "Waiting for posgres (${db_container}) to start..."
+                sleep 1
+            done
+
+            # Provision database for django sites
+            if [ -f manage.py ]; then
+                run_as_user "${network}" python3 manage.py migrate
+            fi
+        fi
+
         # Run the serve container, publishing the port, and detaching if required
-        run_as_user "--env PORT=${PORT} --publish ${PORT}:${PORT} ${publish_forward_ports} ${publish_extra_ports} ${detach} ${run_serve_docker_opts} ${module_volumes}" yarn run serve $*
+        run_as_user "${network} --env PORT=${PORT} --publish ${PORT}:${PORT} ${publish_forward_ports} ${publish_extra_ports} ${detach} ${run_serve_docker_opts} ${module_volumes}" yarn run serve $*
     ;;
     "stop")
         echo "Stopping all running containers for ${project}"
