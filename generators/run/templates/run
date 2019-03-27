@@ -520,10 +520,49 @@ case $run_command in
             esac
             shift
         done
+
+        newtwork=""
+
+        # Run the database if necessary
+        if grep -q django.db.backends.postgresql_psycopg2 */settings.py 2> /dev/null; then
+            network="--network ${network_name}"
+
+            # Create isolated network
+            if ! docker network inspect ${network_name} &> /dev/null; then
+                docker network create ${network_name}
+            fi
+
+            # Start the database
+            trap "kill_container ${db_container}" EXIT;
+            if ! docker inspect -f {{.State.Running}} ${db_container} &>/dev/null; then
+                docker run \
+                    --name ${db_container}       `# Name the container`  \
+                    --rm                         `# Remove the container once it's finished`  \
+                    --volume "${db_volume}":/var/lib/postgresql/data  `# Store dependencies in a docker volume`  \
+                    ${http_proxy}                `# Include HTTP proxy if needed`  \
+                    ${network}                   `# Use an isolated network`  \
+                    --network-alias db           `# Call this container "db" on the network so it can be found`  \
+                    --detach                     `# Run in the background` \
+                    postgres                     `# Use the image for node version 7`
+            fi
+
+            # Wait for it
+            db_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${db_container})
+            until nc -z ${db_ip} 5432; do
+                echo "Waiting for posgres (${db_container}) to start..."
+                sleep 1
+            done
+
+            # Provision database for django sites
+            if [ -f manage.py ]; then
+                run_as_user "${network}" python3 manage.py migrate
+            fi
+        fi
+
         if ${run_as_root}; then
-            docker_run "${expose_ports}" $@
+            docker_run "${expose_ports} ${network}" $@
         else
-            run_as_user "${expose_ports}" $@
+            run_as_user "${expose_ports} ${network}" $@
         fi
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
