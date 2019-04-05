@@ -30,3 +30,4 @@ v3.2.3 (2018-10-22): Update dev image to v1.6.3 which includes black
 v3.3.0 (2019-03-26): Add back database support for Django sites
 v3.3.1 (2019-03-27): Include a database for "./run exec" as well
 v3.3.2 (2019-03-27): Better database management
+v3.3.3 (2019-04-04): Update dev image to v1.6.4 to use node v10.x
