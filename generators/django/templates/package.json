@@ -17,7 +17,7 @@
   "license": "LGPL v3",
   "devDependencies": {
     "node-sass": "4.11.0",
-    "sass-lint": "1.12.1",
+    "sass-lint": "1.13.1",
     "vanilla-brochure-theme": "1.0.9"
   }
 }
