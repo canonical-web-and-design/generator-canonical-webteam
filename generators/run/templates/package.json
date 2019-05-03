@@ -9,7 +9,7 @@
     "autoprefixer": "9.5.1",
     "node-sass": "4.11.0",
     "postcss-cli": "6.1.2",
-    "sass-lint": "1.12.1",
+    "sass-lint": "1.13.1",
     "watch-cli": "0.2.3"
   }
 }

@@ -1,12 +1,21 @@
 {
   "extends": [
     "config:base",
-    "schedule:weekends"
+    "group:all",
+    "schedule:monthly"
   ],
   "packageRules": [
     {
       "languages": ["python"],
-      "extends": [":automergeMinor"]
+      "automerge": true
+    },
+    {
+      "depTypeList": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "languages": ["node"],
+      "automergeMinor": true
     }
   ]
 }
