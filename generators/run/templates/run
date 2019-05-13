@@ -281,11 +281,11 @@ update_dependencies() {
             yarn_dependencies_hash=$(find node_modules -type f ! -wholename 'node_modules/.cache/*' -print0 | sort -z | xargs -0 ${md5_command} | ${md5_command} | cut -c1-8)-${package_json_hash}
         fi
         if [ -z "${yarn_dependencies_hash:-}" ] || [ ! -f .yarn.${project}.hash ] || [ "${yarn_dependencies_hash}" != "$(cat .yarn.${project}.hash)" ]; then
-            echo "Installing new Yarn dependencies (calculated: ${yarn_dependencies_hash}, saved: $(cat .yarn.${project}.hash))"
+            echo "Installing new Yarn dependencies"
             run_as_user "" yarn install --force ${yarn_proxy}
             yarn_dependencies_hash=$(find node_modules -type f ! -wholename 'node_modules/.cache/*' -print0 | sort -z | xargs -0 ${md5_command} | ${md5_command} | cut -c1-8)-${package_json_hash}
             echo ${yarn_dependencies_hash} > .yarn.${project}.hash
-            echo "Saved: ${yarn_dependencies_hash}"
+            echo "Saved ${yarn_dependencies_hash} to .yarn.${project}.hash"
         else
             echo "Yarn dependencies haven't changed. To force an update, delete .yarn.${project}.hash."
         fi
