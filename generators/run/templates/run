@@ -32,7 +32,8 @@ Commands
 - build: Run \`yarn run build\`
 - test: Run \`yarn run test\`
 - stop: Stop any running containers
-- exec [-p|--expose-port PORT] <args>: Run a command in the development container (optionally exposing a port to the host)
+- exec [-r|--root] [-p|--expose-port PORT] <args>: Run a command in the development container (optionally exposing a port to the host)
+- yarn [-r|--root] [-p|--expose-port PORT] <script-name>: Run a yarn script from package.json
 - clean: Remove all images and containers, any installed dependencies and the .docker-project file
 - clean-cache: Empty cache files, which are saved between projects (eg, yarn)
 "
@@ -509,6 +510,7 @@ case $run_command in
     "exec")
         expose_ports=""
         run_as_root=false
+
         while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
             key="$1"
 
@@ -526,12 +528,43 @@ case $run_command in
             shift
         done
 
+        update_dependencies
         start_django_db
 
         if ${run_as_root}; then
             docker_run "${expose_ports}" $@
         else
             run_as_user "${expose_ports}" $@
+        fi
+    ;;
+    "yarn")
+        expose_ports=""
+        run_as_root=false
+
+        while [[ -n "${1:-}" ]] && [[ "${1:0:1}" == "-" ]]; do
+            key="$1"
+
+            case $key in
+                -r|--root)
+                    run_as_root=true
+                ;;
+                -p|--expose-port)
+                    if [ -z "${2:-}" ]; then invalid "Missing port number. Usage: --expose-port XXXX"; fi
+                    expose_ports="${expose_ports} --publish ${2}:${2}"
+                    shift
+                ;;
+                *) invalid "Option '${key}' not recognised." ;;
+            esac
+            shift
+        done
+
+        update_dependencies
+        start_django_db
+
+        if ${run_as_root}; then
+            docker_run "${expose_ports}" yarn run $@
+        else
+            run_as_user "${expose_ports}" yarn run $@
         fi
     ;;
     *) invalid "Command '${run_command}' not recognised." ;;
