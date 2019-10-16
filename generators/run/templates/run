@@ -31,6 +31,8 @@ Commands
 - watch [-s|--watch-site]: Run \`yarn run watch\` (for jekyll sites, watch for changes with \`--watch-site\`)
 - build: Run \`yarn run build\`
 - test: Run \`yarn run test\`
+- test-python: Run \`yarn run test-python\`
+- lint-python: Run \`yarn run lint-python\`
 - stop: Stop any running containers
 - exec [-r|--root] [-p|--expose-port PORT] <args>: Run a command in the development container (optionally exposing a port to the host)
 - yarn [-r|--root] [-p|--expose-port PORT] <script-name>: Run a yarn script from package.json
@@ -467,6 +469,48 @@ case $run_command in
         else
             echo "==="
             echo "Tests succeeded"
+            echo "==="
+        fi
+    ;;
+    "test-python")
+        update_dependencies
+
+        test_error=false
+
+        # Run node tests
+        echo "- Running python tests"
+        run_as_user "" yarn run test-python || test_error=true
+
+        # Report success or failure
+        if ${test_error}; then
+            echo "==="
+            echo "Tests failed"
+            echo "==="
+            exit 1
+        else
+            echo "==="
+            echo "Tests succeeded"
+            echo "==="
+        fi
+    ;;
+    "lint-python")
+        update_dependencies
+
+        lint_error=false
+
+        # Run node tests
+        echo "- Running python lint"
+        run_as_user "" yarn run lint-python || lint_error=true
+
+        # Report success or failure
+        if ${lint_error}; then
+            echo "==="
+            echo "Lint failed"
+            echo "==="
+            exit 1
+        else
+            echo "==="
+            echo "Lint succeeded"
             echo "==="
         fi
     ;;
