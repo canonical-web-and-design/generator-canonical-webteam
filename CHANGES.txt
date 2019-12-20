@@ -34,3 +34,4 @@ v3.3.3 (2019-04-04): Update dev image to v1.6.4 to use node v10.x
 v3.4.0 (2019-05-13): Add "./run yarn"; support webpack cache with yarn dependencies calculation
 v3.4.1 (2019-05-13): Hotfix: Fix "yarn_dependencies_hash: unbound variable" error
 v3.4.2 (2019-05-13): Add Python tests and lint
+v3.4.3 (2019-12-20): Update dev image to v1.6.7 to use NPM v6.13.4 and Yarn v1.21.1
