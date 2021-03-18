@@ -1,3 +1,9 @@
+**Project archived**
+
+*We no longer use this project. It was mostly used for managing the ./run script, but that is barely  updated any more (in favour of [dotrun](https://github.com/canonical-web-and-design/dotrun/)). Updates to ./run should now happen manually as needed.*
+
+---
+
 # The webteam's Yeoman generator
 
 This is a collection of generator scripts for creating and maintaining Canonical webteam projects.
