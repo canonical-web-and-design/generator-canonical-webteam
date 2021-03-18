@@ -1,12 +1,12 @@
-Django==3.0.5
-whitenoise==5.0.1
+Django==3.1.6
+whitenoise==5.2.0
 django-yaml-redirects==0.5.4
 django-asset-server-url==0.1
 django-versioned-static-url==0.8
 django-template-finder-view==0.3
 django-static-root-finder==0.3.1
 django-unslashed==0.3.0
-feedparser==5.2.1
-requests==2.23.0
+feedparser==6.0.2
+requests==2.25.1
 requests-cache==0.5.2
 ubuntudesign.gsa==1.1.0
